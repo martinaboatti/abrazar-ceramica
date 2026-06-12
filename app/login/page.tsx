@@ -47,7 +47,7 @@ export default function LoginPage() {
               placeholder="tu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300"
+              className="w-full border border-gray-200 text-gray-900 text-gray-900 text-gray-900 text-gray-900 text-gray-900 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300"
             />
           </div>
           <div>
@@ -56,8 +56,8 @@ export default function LoginPage() {
               type="password"
               placeholder="Ingresá tu contraseña"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300"
+              onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              className="w-full border border-gray-200 text-gray-900 text-gray-900 text-gray-900 text-gray-900 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300"
             />
           </div>
           {error && (
