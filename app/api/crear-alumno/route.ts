@@ -1,0 +1,50 @@
+import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
+
+export async function POST(request: Request) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const { nombre, apellido, email, password } = await request.json()
+
+  if (!nombre || !apellido || !email || !password) {
+    return NextResponse.json(
+      { error: 'Todos los campos son obligatorios.' },
+      { status: 400 }
+    )
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  })
+
+  if (authError) {
+    return NextResponse.json(
+      { error: authError.message.includes('already') ? 'Este email ya está registrado.' : 'Error al crear la cuenta.' },
+      { status: 400 }
+    )
+  }
+
+  const { error: insertError } = await supabase
+    .from('usuarios')
+    .insert({
+      id: authData.user.id,
+      email,
+      nombre,
+      apellido,
+      rol: 'alumno',
+    })
+
+  if (insertError) {
+    return NextResponse.json(
+      { error: 'Error al guardar los datos del alumno.' },
+      { status: 500 }
+    )
+  }
+
+  return NextResponse.json({ ok: true })
+}
