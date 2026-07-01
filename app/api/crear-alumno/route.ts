@@ -40,11 +40,12 @@ export async function POST(request: Request) {
     })
 
   if (insertError) {
+    console.log('Error insert:', insertError)
     return NextResponse.json(
-      { error: 'Error al guardar los datos del alumno.' },
+      { error: 'Error al guardar los datos del alumno: ' + insertError.message },
       { status: 500 }
     )
-  }
+}
 
   return NextResponse.json({ ok: true })
 }
