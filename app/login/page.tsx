@@ -47,7 +47,7 @@ export default function LoginPage() {
               placeholder="tu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-200 text-gray-900 text-gray-900 text-gray-900 text-gray-900 text-gray-900 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300"
+              className="w-full border border-gray-200 text-gray-900 text-gray-900 text-gray-900 text-gray-900 text-gray-900 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300"
             />
           </div>
           <div>
@@ -57,7 +57,7 @@ export default function LoginPage() {
               placeholder="Ingresá tu contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              className="w-full border border-gray-200 text-gray-900 text-gray-900 text-gray-900 text-gray-900 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300"
+              className="w-full border border-gray-200 text-gray-900 text-gray-900 text-gray-900 text-gray-900 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300"
             />
           </div>
           {error && (
@@ -66,13 +66,13 @@ export default function LoginPage() {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
+            className="w-full bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
           >
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
           
             <a href="/recuperar"
-            className="text-center text-sm text-orange-500 hover:underline"
+            className="text-center text-sm text-naranja-500 hover:underline"
           >
             ¿Olvidaste tu contraseña?
           </a>

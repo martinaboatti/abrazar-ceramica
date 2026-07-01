@@ -10,6 +10,16 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-naranja-50: #fdf3ee;
+  --color-naranja-100: #f9e0d2;
+  --color-naranja-200: #f3c4a8;
+  --color-naranja-300: #e9a17a;
+  --color-naranja-400: #d4845c;
+  --color-naranja-500: #c4704b;
+  --color-naranja-600: #b25a38;
+  --color-naranja-700: #94472d;
+  --color-naranja-800: #773a27;
+  --color-naranja-900: #613022;
 }
 
 @media (prefers-color-scheme: dark) {

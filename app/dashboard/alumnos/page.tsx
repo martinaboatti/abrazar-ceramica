@@ -112,7 +112,7 @@ export default function AlumnosPage() {
           <h1 className="text-2xl font-semibold text-gray-800">Gestión de alumnos</h1>
           <p className="text-gray-400 text-sm mt-1">Administrá los alumnos del taller</p>
         </div>
-        <button onClick={() => setMostrarFormulario(true)} className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">+ Agregar alumno</button>
+        <button onClick={() => setMostrarFormulario(true)} className="bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">+ Agregar alumno</button>
       </div>
 
       {mostrarFormulario && (
@@ -125,19 +125,19 @@ export default function AlumnosPage() {
             <div className="flex flex-col gap-3">
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Nombre</label>
-                <input type="text" placeholder="Ingresá el nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300" />
+                <input type="text" placeholder="Ingresá el nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Apellido</label>
-                <input type="text" placeholder="Ingresá el apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300" />
+                <input type="text" placeholder="Ingresá el apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Email</label>
-                <input type="email" placeholder="alumno@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300" />
+                <input type="email" placeholder="alumno@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Horario disponible</label>
-                <select value={horarioId} onChange={(e) => setHorarioId(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300">
+                <select value={horarioId} onChange={(e) => setHorarioId(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300">
                   <option value="">Seleccioná un horario</option>
                   {horarios.map((h) => {
                     const cupos = getCuposDisponibles(h)
@@ -152,7 +152,7 @@ export default function AlumnosPage() {
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <div className="flex gap-3 mt-2">
                 <button onClick={() => { setMostrarFormulario(false); setError('') }} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
-                <button onClick={handleAgregar} disabled={guardando} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">{guardando ? 'Guardando...' : 'Agregar alumno'}</button>
+                <button onClick={handleAgregar} disabled={guardando} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">{guardando ? 'Guardando...' : 'Agregar alumno'}</button>
               </div>
             </div>
           </div>

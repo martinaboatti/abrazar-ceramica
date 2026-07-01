@@ -63,12 +63,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen bg-gray-50">
       <aside className="w-64 bg-white border-r border-gray-100 flex flex-col">
         <div className="p-6">
-          <h1 className="text-xl font-semibold text-orange-600">Abrazar</h1>
-          <h1 className="text-xl font-semibold text-orange-600">Cerámica</h1>
+          <h1 className="text-xl font-semibold text-naranja-600">Abrazar</h1>
+          <h1 className="text-xl font-semibold text-naranja-600">Cerámica</h1>
         </div>
         <nav className="flex-1 px-4">
           {menu.map((item) => (
-            <button key={item.ruta} onClick={() => router.push(item.ruta)} className={`w-full text-left px-4 py-3 rounded-lg text-sm mb-1 flex items-center gap-3 transition-colors ${pathname === item.ruta ? 'bg-orange-50 text-orange-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <button key={item.ruta} onClick={() => router.push(item.ruta)} className={`w-full text-left px-4 py-3 rounded-lg text-sm mb-1 flex items-center gap-3 transition-colors ${pathname === item.ruta ? 'bg-naranja-50 text-naranja-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
               <span>{item.icono}</span>
               {item.nombre}
             </button>

@@ -87,7 +87,7 @@ export default function HorariosPage() {
             <button onClick={() => setVista('calendario')} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${vista === 'calendario' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}>📅 Calendario</button>
             <button onClick={() => setVista('lista')} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${vista === 'lista' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}>📋 Lista</button>
           </div>
-          <button onClick={() => setMostrarFormulario(true)} className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">+ Nuevo horario</button>
+          <button onClick={() => setMostrarFormulario(true)} className="bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">+ Nuevo horario</button>
         </div>
       </div>
 
@@ -101,11 +101,11 @@ export default function HorariosPage() {
             <div className="flex flex-col gap-3">
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Nombre de la clase</label>
-                <input type="text" placeholder="Ej: Torno básico" value={nombre} onChange={(e) => setNombre(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 placeholder:text-gray-300" />
+                <input type="text" placeholder="Ej: Torno básico" value={nombre} onChange={(e) => setNombre(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Día</label>
-                <select value={dia} onChange={(e) => setDia(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300">
+                <select value={dia} onChange={(e) => setDia(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300">
                   <option>Lunes</option>
                   <option>Martes</option>
                   <option>Miércoles</option>
@@ -116,20 +116,20 @@ export default function HorariosPage() {
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Hora</label>
-                <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+                <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300" />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Cupo máximo</label>
-                <input type="number" value={cupoMaximo} onChange={(e) => setCupoMaximo(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+                <input type="number" value={cupoMaximo} onChange={(e) => setCupoMaximo(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300" />
               </div>
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Anticipación mínima para cancelar (horas)</label>
-                <input type="number" value={horasCancelacion} onChange={(e) => setHorasCancelacion(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+                <input type="number" value={horasCancelacion} onChange={(e) => setHorasCancelacion(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300" />
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <div className="flex gap-3 mt-2">
                 <button onClick={() => { setMostrarFormulario(false); setError('') }} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
-                <button onClick={handleCrear} disabled={guardando} className="flex-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">{guardando ? 'Guardando...' : 'Crear horario'}</button>
+                <button onClick={handleCrear} disabled={guardando} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">{guardando ? 'Guardando...' : 'Crear horario'}</button>
               </div>
             </div>
           </div>
@@ -153,7 +153,7 @@ export default function HorariosPage() {
                   <span className="text-gray-800 font-medium">{getInscriptos(horario)}/{horario.cupo_maximo}</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div className="bg-orange-400 h-2 rounded-full" style={{ width: `${(getInscriptos(horario) / horario.cupo_maximo) * 100}%` }}></div>
+                  <div className="bg-naranja-400 h-2 rounded-full" style={{ width: `${(getInscriptos(horario) / horario.cupo_maximo) * 100}%` }}></div>
                 </div>
               </div>
             </div>
