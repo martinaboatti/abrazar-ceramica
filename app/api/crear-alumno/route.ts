@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const { nombre, apellido, email, password } = await request.json()
+  const { nombre, apellido, email, password, horarioId } = await request.json()
 
   if (!nombre || !apellido || !email || !password) {
     return NextResponse.json(
@@ -45,7 +45,20 @@ export async function POST(request: Request) {
       { error: 'Error al guardar los datos del alumno: ' + insertError.message },
       { status: 500 }
     )
-}
+  }
+
+  if (horarioId) {
+    const { error: inscError } = await supabase
+      .from('inscripciones')
+      .insert({
+        usuario_id: authData.user.id,
+        horario_id: horarioId,
+      })
+
+    if (inscError) {
+      console.log('Error inscripción:', inscError)
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }
