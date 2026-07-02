@@ -14,6 +14,8 @@ export default function AlumnosPage() {
   const [horarioId, setHorarioId] = useState('')
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
+  const [editandoHorario, setEditandoHorario] = useState<any>(null)
+  const [nuevoHorarioId, setNuevoHorarioId] = useState('')
   const supabase = createClient()
 
   async function cargarDatos() {
@@ -101,6 +103,26 @@ export default function AlumnosPage() {
     if (res.ok) cargarDatos()
   }
 
+  async function handleCambiarHorario() {
+    if (!editandoHorario || !nuevoHorarioId) return
+
+    await supabase
+      .from('inscripciones')
+      .delete()
+      .eq('usuario_id', editandoHorario.id)
+
+    await supabase
+      .from('inscripciones')
+      .insert({
+        usuario_id: editandoHorario.id,
+        horario_id: nuevoHorarioId,
+      })
+
+    setEditandoHorario(null)
+    setNuevoHorarioId('')
+    cargarDatos()
+  }
+
   if (cargando) {
     return <p className="text-gray-500">Cargando alumnos...</p>
   }
@@ -116,7 +138,7 @@ export default function AlumnosPage() {
       </div>
 
       {mostrarFormulario && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-800">Agregar nuevo alumno</h2>
@@ -159,6 +181,36 @@ export default function AlumnosPage() {
         </div>
       )}
 
+      {editandoHorario && (
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Editar horario</h2>
+              <button onClick={() => setEditandoHorario(null)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <p className="text-sm text-gray-600 mb-3">Alumno: <strong>{editandoHorario.nombre} {editandoHorario.apellido}</strong></p>
+            <div>
+              <label className="text-sm text-gray-600 mb-1 block">Nuevo horario</label>
+              <select value={nuevoHorarioId} onChange={(e) => setNuevoHorarioId(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300">
+                <option value="">Seleccioná un horario</option>
+                {horarios.map((h) => {
+                  const cupos = getCuposDisponibles(h)
+                  return (
+                    <option key={h.id} value={h.id} disabled={cupos <= 0}>
+                      {h.nombre} - {h.dia} {h.hora?.slice(0, 5)} - {cupos > 0 ? `${cupos} cupos disponibles` : '0 cupos disponibles'}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setEditandoHorario(null)} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button onClick={handleCambiarHorario} disabled={!nuevoHorarioId} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {alumnos.length === 0 ? (
         <p className="text-gray-400 text-sm">Aún no hay alumnos registrados.</p>
       ) : (
@@ -181,7 +233,10 @@ export default function AlumnosPage() {
                   <td className="px-6 py-4 text-sm text-gray-500">{getHorarioTexto(alumno)}</td>
                   <td className="px-6 py-4"><span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">Activo</span></td>
                   <td className="px-6 py-4">
-                    <button onClick={() => handleDarDeBaja(alumno.id)} className="text-xs text-red-500 hover:text-red-700">Dar de baja</button>
+                    <div className="flex gap-3">
+                      <button onClick={() => { setEditandoHorario(alumno); setNuevoHorarioId('') }} className="text-xs text-naranja-500 hover:text-naranja-700">Editar horario</button>
+                      <button onClick={() => handleDarDeBaja(alumno.id)} className="text-xs text-red-500 hover:text-red-700">Dar de baja</button>
+                    </div>
                   </td>
                 </tr>
               ))}

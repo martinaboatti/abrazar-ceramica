@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase'
+import { MoreVertical } from 'lucide-react'
 
 export default function PiezasPage() {
   const [piezas, setPiezas] = useState<any[]>([])
@@ -22,6 +23,8 @@ export default function PiezasPage() {
   const [filtroEtapa, setFiltroEtapa] = useState('')
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
+  const [editandoPieza, setEditandoPieza] = useState<any>(null)
+  const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
   const [piezaAvanzar, setPiezaAvanzar] = useState<any>(null)
   const supabase = createClient()
 
@@ -210,6 +213,42 @@ export default function PiezasPage() {
 
   const etapasUnicas = [...new Set(piezas.map(p => p.estados?.nombre).filter(Boolean))]
 
+  async function handleEditarPieza() {
+    setError('')
+    setGuardando(true)
+
+    if (!nombrePieza || !tecnicaPieza) {
+      setError('El nombre y la técnica son obligatorios.')
+      setGuardando(false)
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from('piezas')
+      .update({ nombre: nombrePieza, tecnica: tecnicaPieza })
+      .eq('id', editandoPieza.id)
+
+    if (updateError) {
+      setError('Error al actualizar la pieza.')
+      setGuardando(false)
+      return
+    }
+
+    setNombrePieza('')
+    setTecnicaPieza('')
+    setEditandoPieza(null)
+    setMostrarFormPieza(false)
+    setGuardando(false)
+    cargarDatos()
+  }
+
+  async function handleEliminarPieza(piezaId: string) {
+    if (!confirm('¿Estás segura de que querés eliminar esta pieza?')) return
+    await supabase.from('historial_estados').delete().eq('pieza_id', piezaId)
+    await supabase.from('piezas').delete().eq('id', piezaId)
+    cargarDatos()
+  }
+
   if (cargando) {
     return <p className="text-gray-500">Cargando piezas...</p>
   }
@@ -235,7 +274,7 @@ export default function PiezasPage() {
       </div>
 
       {mostrarFormFlujo && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-800">Nuevo flujo de producción</h2>
@@ -274,10 +313,10 @@ export default function PiezasPage() {
       )}
 
       {mostrarFormPieza && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Registrar nueva pieza</h2>
+              <h2 className="text-lg font-semibold text-gray-800">{editandoPieza ? 'Editar pieza' : 'Registrar nueva pieza'}</h2>
               <button onClick={() => { setMostrarFormPieza(false); setError('') }} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
             </div>
             <div className="flex flex-col gap-3">
@@ -309,8 +348,8 @@ export default function PiezasPage() {
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <div className="flex gap-3 mt-2">
-                <button onClick={() => { setMostrarFormPieza(false); setError('') }} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
-                <button onClick={handleCrearPieza} disabled={guardando} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">{guardando ? 'Guardando...' : 'Registrar pieza'}</button>
+                <button onClick={() => { setMostrarFormPieza(false); setError(''); setEditandoPieza(null) }} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+                <button onClick={editandoPieza ? handleEditarPieza : handleCrearPieza} disabled={guardando} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">{guardando ? 'Guardando...' : editandoPieza ? 'Guardar cambios' : 'Registrar pieza'}</button>
               </div>
             </div>
           </div>
@@ -323,7 +362,7 @@ export default function PiezasPage() {
         const estadoActual = flujo?.estados?.[estadoActualIndex]
         const siguienteEstado = flujo?.estados?.[estadoActualIndex + 1]
         return (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-800">Avanzar pieza</h2>
@@ -419,10 +458,23 @@ export default function PiezasPage() {
                         <td className="px-6 py-4 w-1/5"><span className={`text-sm px-2 py-1 rounded-full ${pieza.finalizada ? 'bg-green-50 text-green-700' : 'bg-naranja-50 text-naranja-700'}`}>{pieza.estados?.nombre || '-'}</span></td>
                         <td className="px-6 py-4 text-sm text-gray-400 w-1/5">{new Date(pieza.created_at).toLocaleDateString()}</td>
                         <td className="px-6 py-4 w-1/5">
-                          {!pieza.finalizada && siguienteEstado && (
-                            <button onClick={() => setPiezaAvanzar(pieza)} className="text-sm bg-naranja-50 text-naranja-600 hover:bg-naranja-100 px-3 py-1.5 rounded-lg font-medium transition-colors">Avanzar</button>
-                          )}
-                          {pieza.finalizada && <span className="text-sm text-green-600">Finalizada</span>}
+                          <div className="flex gap-2 items-center">
+                            {!pieza.finalizada && siguienteEstado && (
+                              <button onClick={() => setPiezaAvanzar(pieza)} className="text-sm bg-naranja-50 text-naranja-600 hover:bg-naranja-100 px-3 py-1.5 rounded-lg font-medium transition-colors">Avanzar</button>
+                            )}
+                            {pieza.finalizada && <span className="text-sm text-green-600">Finalizada</span>}
+                            <div className="relative">
+                              <button onClick={() => setMenuAbierto(menuAbierto === pieza.id ? null : pieza.id)} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
+                                <MoreVertical size={16} className="text-gray-400" />
+                              </button>
+                              {menuAbierto === pieza.id && (
+                                <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 w-36">
+                                  <button onClick={() => { setEditandoPieza(pieza); setNombrePieza(pieza.nombre); setTecnicaPieza(pieza.tecnica); setMostrarFormPieza(true); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Editar pieza</button>
+                                  <button onClick={() => { handleEliminarPieza(pieza.id); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50">Eliminar pieza</button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     )
