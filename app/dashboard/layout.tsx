@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase'
 import { useRouter, usePathname } from 'next/navigation'
+import { Palette, Users, CalendarDays, Megaphone, BookOpen, LogOut } from 'lucide-react'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<any>(null)
@@ -43,18 +44,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const menuDocente = [
-    { nombre: 'Gestión de piezas', ruta: '/dashboard/piezas', icono: '🎨' },
-    { nombre: 'Gestión de alumnos', ruta: '/dashboard/alumnos', icono: '👥' },
-    { nombre: 'Horarios y asistencia', ruta: '/dashboard/horarios', icono: '📅' },
-    { nombre: 'Avisos', ruta: '/dashboard/avisos', icono: '📢' },
-    { nombre: 'Base de conocimiento', ruta: '/dashboard/conocimiento', icono: '📚' },
+    { nombre: 'Gestión de piezas', ruta: '/dashboard/piezas', icono: Palette },
+    { nombre: 'Gestión de alumnos', ruta: '/dashboard/alumnos', icono: Users },
+    { nombre: 'Horarios y asistencia', ruta: '/dashboard/horarios', icono: CalendarDays },
+    { nombre: 'Avisos', ruta: '/dashboard/avisos', icono: Megaphone },
+    { nombre: 'Base de conocimiento', ruta: '/dashboard/conocimiento', icono: BookOpen },
   ]
 
   const menuAlumno = [
-    { nombre: 'Mis piezas', ruta: '/dashboard/piezas', icono: '🎨' },
-    { nombre: 'Mi horario', ruta: '/dashboard/horarios', icono: '📅' },
-    { nombre: 'Avisos', ruta: '/dashboard/avisos', icono: '📢' },
-    { nombre: 'Base de conocimiento', ruta: '/dashboard/conocimiento', icono: '📚' },
+    { nombre: 'Mis piezas', ruta: '/dashboard/piezas', icono: Palette },
+    { nombre: 'Mi horario', ruta: '/dashboard/horarios', icono: CalendarDays },
+    { nombre: 'Avisos', ruta: '/dashboard/avisos', icono: Megaphone },
+    { nombre: 'Base de conocimiento', ruta: '/dashboard/conocimiento', icono: BookOpen },
   ]
 
   const menu = usuario.rol === 'docente' ? menuDocente : menuAlumno
@@ -69,14 +70,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="flex-1 px-4">
           {menu.map((item) => (
             <button key={item.ruta} onClick={() => router.push(item.ruta)} className={`w-full text-left px-4 py-3 rounded-lg text-sm mb-1 flex items-center gap-3 transition-colors ${pathname === item.ruta ? 'bg-naranja-50 text-naranja-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
-              <span>{item.icono}</span>
+              <item.icono size={18} />
               {item.nombre}
             </button>
           ))}
         </nav>
         <div className="p-4 border-t border-gray-100">
           <button onClick={handleLogout} className="w-full text-left px-4 py-3 rounded-lg text-sm text-gray-500 hover:bg-gray-50 flex items-center gap-3 transition-colors">
-            🚪 Cerrar sesión
+            <LogOut size={18} /> Cerrar sesión
           </button>
         </div>
       </aside>

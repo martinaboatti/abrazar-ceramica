@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase'
+import { CalendarDays, List } from 'lucide-react'
 
 export default function HorariosPage() {
   const [horarios, setHorarios] = useState<any[]>([])
@@ -84,8 +85,8 @@ export default function HorariosPage() {
         </div>
         <div className="flex gap-2">
           <div className="flex bg-gray-100 rounded-lg p-1">
-            <button onClick={() => setVista('calendario')} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${vista === 'calendario' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}>📅 Calendario</button>
-            <button onClick={() => setVista('lista')} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${vista === 'lista' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}>📋 Lista</button>
+            <button onClick={() => setVista('calendario')} className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1 ${vista === 'calendario' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}><CalendarDays size={16} /> Calendario</button>
+            <button onClick={() => setVista('lista')} className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1 ${vista === 'lista' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}><List size={16} /> Lista</button>
           </div>
           <button onClick={() => setMostrarFormulario(true)} className="bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">+ Nuevo horario</button>
         </div>
@@ -149,7 +150,7 @@ export default function HorariosPage() {
               </div>
               <div className="mt-3">
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-500">Enrollment</span>
+                  <span className="text-gray-500">Inscripciones</span>
                   <span className="text-gray-800 font-medium">{getInscriptos(horario)}/{horario.cupo_maximo}</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
