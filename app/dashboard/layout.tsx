@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase'
 import { useRouter, usePathname } from 'next/navigation'
-import { Palette, Users, CalendarDays, Megaphone, BookOpen, LogOut } from 'lucide-react'
+import { Palette, Users, CalendarDays, Megaphone, BookOpen, LogOut, UserCircle } from 'lucide-react'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<any>(null)
@@ -49,6 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { nombre: 'Horarios y asistencia', ruta: '/dashboard/horarios', icono: CalendarDays },
     { nombre: 'Avisos', ruta: '/dashboard/avisos', icono: Megaphone },
     { nombre: 'Base de conocimiento', ruta: '/dashboard/conocimiento', icono: BookOpen },
+    { nombre: 'Mi perfil', ruta: '/dashboard/perfil', icono: UserCircle },
   ]
 
   const menuAlumno = [
@@ -56,6 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { nombre: 'Mi horario', ruta: '/dashboard/horarios', icono: CalendarDays },
     { nombre: 'Avisos', ruta: '/dashboard/avisos', icono: Megaphone },
     { nombre: 'Base de conocimiento', ruta: '/dashboard/conocimiento', icono: BookOpen },
+    { nombre: 'Mi perfil', ruta: '/dashboard/perfil', icono: UserCircle },
   ]
 
   const menu = usuario.rol === 'docente' ? menuDocente : menuAlumno

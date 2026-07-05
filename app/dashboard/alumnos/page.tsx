@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase'
+import { MoreVertical } from 'lucide-react'
 
 export default function AlumnosPage() {
   const [alumnos, setAlumnos] = useState<any[]>([])
@@ -15,6 +16,8 @@ export default function AlumnosPage() {
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [editandoHorario, setEditandoHorario] = useState<any>(null)
+  const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
+  const [perfilAlumno, setPerfilAlumno] = useState<any>(null) 
   const [nuevoHorarioId, setNuevoHorarioId] = useState('')
   const supabase = createClient()
 
@@ -181,6 +184,41 @@ export default function AlumnosPage() {
         </div>
       )}
 
+      {perfilAlumno && (
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Perfil del alumno</h2>
+              <button onClick={() => setPerfilAlumno(null)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-14 h-14 rounded-full bg-naranja-50 flex items-center justify-center">
+                <span className="text-naranja-600 text-lg font-semibold">{perfilAlumno.nombre?.[0]}{perfilAlumno.apellido?.[0]}</span>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-800">{perfilAlumno.nombre} {perfilAlumno.apellido}</p>
+                <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">Activo</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div>
+                <p className="text-xs text-gray-400">Email</p>
+                <p className="text-sm text-gray-800">{perfilAlumno.email}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Horario asignado</p>
+                <p className="text-sm text-gray-800">{getHorarioTexto(perfilAlumno)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">Fecha de inscripción</p>
+                <p className="text-sm text-gray-800">{new Date(perfilAlumno.created_at).toLocaleDateString()}</p>
+              </div>
+            </div>
+            <button onClick={() => setPerfilAlumno(null)} className="w-full mt-4 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cerrar</button>
+          </div>
+        </div>
+      )}
+
       {editandoHorario && (
         <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
@@ -233,9 +271,17 @@ export default function AlumnosPage() {
                   <td className="px-6 py-4 text-sm text-gray-500">{getHorarioTexto(alumno)}</td>
                   <td className="px-6 py-4"><span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">Activo</span></td>
                   <td className="px-6 py-4">
-                    <div className="flex gap-3">
-                      <button onClick={() => { setEditandoHorario(alumno); setNuevoHorarioId('') }} className="text-xs text-naranja-500 hover:text-naranja-700">Editar horario</button>
-                      <button onClick={() => handleDarDeBaja(alumno.id)} className="text-xs text-red-500 hover:text-red-700">Dar de baja</button>
+                    <div className="relative">
+                      <button onClick={() => setMenuAbierto(menuAbierto === alumno.id ? null : alumno.id)} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
+                        <MoreVertical size={16} className="text-gray-400" />
+                      </button>
+                      {menuAbierto === alumno.id && (
+                        <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 w-40">
+                          <button onClick={() => { setPerfilAlumno(alumno); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Ver perfil</button>
+                          <button onClick={() => { setEditandoHorario(alumno); setNuevoHorarioId(''); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Editar horario</button>
+                          <button onClick={() => { handleDarDeBaja(alumno.id); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50">Dar de baja</button>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
