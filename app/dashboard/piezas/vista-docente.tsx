@@ -183,6 +183,18 @@ export default function VistaDocente() {
       estado_id: siguienteEstado.id,
       usuario_id: (await supabase.auth.getUser()).data.user?.id,
     })
+
+    // Enviar notificación por Telegram
+    fetch('/api/notificar-pieza', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        alumnoId: pieza.alumno_id,
+        piezaNombre: pieza.nombre,
+        estadoNombre: siguienteEstado.nombre,
+      }),
+    }).catch(() => {})
+
     cargarDatos()
   }
 
