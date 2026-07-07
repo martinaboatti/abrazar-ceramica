@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const rutasPublicas = ['/login', '/registro', '/recuperar', '/nueva-password']
+  const rutasPublicas = ['/login', '/registro', '/recuperar', '/nueva-password', '/api/telegram-webhook', '/api/notificar-pieza']
   const esRutaPublica = rutasPublicas.includes(request.nextUrl.pathname)
 
   if (!user && !esRutaPublica) {
