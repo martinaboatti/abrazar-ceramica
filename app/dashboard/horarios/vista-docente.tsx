@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase'
-import { CalendarDays, List } from 'lucide-react'
+import { CalendarDays, List, X } from 'lucide-react'
 
 export default function VistaDocenteHorarios() {
   const [horarios, setHorarios] = useState<any[]>([])
@@ -16,6 +16,14 @@ export default function VistaDocenteHorarios() {
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [vista, setVista] = useState<'calendario' | 'lista'>('calendario')
+  const [horarioSeleccionado, setHorarioSeleccionado] = useState<any>(null)
+  const [alumnosDelHorario, setAlumnosDelHorario] = useState<any[]>([])
+  const [asistenciasSeleccionadas, setAsistenciasSeleccionadas] = useState<string[]>([])
+  const [guardandoAsistencia, setGuardandoAsistencia] = useState(false)
+  const [fechaAsistencia, setFechaAsistencia] = useState('')
+  const [exitoAsistencia, setExitoAsistencia] = useState(false)
+  const [asistenciaGuardada, setAsistenciaGuardada] = useState(false)
+  const [modoEdicion, setModoEdicion] = useState(false)
   const supabase = createClient()
 
   async function cargarHorarios() {
@@ -62,6 +70,141 @@ export default function VistaDocenteHorarios() {
     setMostrarFormulario(false)
     setGuardando(false)
     cargarHorarios()
+  }
+
+  async function handleSeleccionarHorario(horario: any) {
+    setHorarioSeleccionado(horario)
+    setAsistenciaGuardada(false)
+    setModoEdicion(false)
+    setExitoAsistencia(false)
+
+    const hoy = new Date()
+    const año = hoy.getFullYear()
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0')
+    const diaHoy = String(hoy.getDate()).padStart(2, '0')
+    const fechaHoy = `${año}-${mes}-${diaHoy}`
+    setFechaAsistencia(fechaHoy)
+
+    const { data: inscripciones } = await supabase
+      .from('inscripciones')
+      .select('usuario_id, usuarios(id, nombre, apellido)')
+      .eq('horario_id', horario.id)
+
+    if (inscripciones) {
+      setAlumnosDelHorario(inscripciones.map((i: any) => i.usuarios))
+    }
+
+    await cargarAsistenciaPorFecha(horario.id, fechaHoy)
+  }
+
+  async function cargarAsistenciaPorFecha(horarioId: string, fecha: string) {
+    const { data: claseExistente } = await supabase
+      .from('clases')
+      .select('id')
+      .eq('horario_id', horarioId)
+      .eq('fecha', fecha)
+      .maybeSingle()
+
+    if (claseExistente) {
+      const { data: asistencias } = await supabase
+        .from('asistencias')
+        .select('usuario_id')
+        .eq('clase_id', claseExistente.id)
+        .eq('tipo_id', 'regular')
+        .eq('estado_id', 'confirmada')
+
+      if (asistencias && asistencias.length > 0) {
+        setAsistenciasSeleccionadas(asistencias.map((a: any) => a.usuario_id))
+        setAsistenciaGuardada(true)
+        setModoEdicion(false)
+      } else {
+        setAsistenciasSeleccionadas([])
+        setAsistenciaGuardada(false)
+        setModoEdicion(false)
+      }
+    } else {
+      setAsistenciasSeleccionadas([])
+      setAsistenciaGuardada(false)
+      setModoEdicion(false)
+    }
+  }
+
+  function puedeMarcarAsistencia(): boolean {
+    if (!horarioSeleccionado) return false
+    const ahora = new Date()
+    const partes = fechaAsistencia.split('-')
+    const fechaSeleccionada = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]))
+    const horaClase = horarioSeleccionado?.hora?.slice(0, 5)
+
+    if (!horaClase) return false
+
+    const [h, m] = horaClase.split(':').map(Number)
+    const inicioClase = new Date(fechaSeleccionada)
+    inicioClase.setHours(h, m, 0, 0)
+
+    const finDia = new Date(fechaSeleccionada)
+    finDia.setHours(23, 59, 59, 999)
+
+    return ahora >= inicioClase && ahora <= finDia
+  }
+
+  function toggleAsistencia(alumnoId: string) {
+    setAsistenciasSeleccionadas(prev =>
+      prev.includes(alumnoId)
+        ? prev.filter(id => id !== alumnoId)
+        : [...prev, alumnoId]
+    )
+  }
+
+  async function handleGuardarAsistencia() {
+    setGuardandoAsistencia(true)
+
+    let claseId: string
+
+    const { data: claseExistente } = await supabase
+      .from('clases')
+      .select('id')
+      .eq('horario_id', horarioSeleccionado.id)
+      .eq('fecha', fechaAsistencia)
+      .maybeSingle()
+
+    if (claseExistente) {
+      claseId = claseExistente.id
+      await supabase
+        .from('asistencias')
+        .delete()
+        .eq('clase_id', claseId)
+        .eq('tipo_id', 'regular')
+    } else {
+      const { data: nuevaClase } = await supabase
+        .from('clases')
+        .insert({ horario_id: horarioSeleccionado.id, fecha: fechaAsistencia })
+        .select()
+        .single()
+
+      if (!nuevaClase) {
+        setGuardandoAsistencia(false)
+        return
+      }
+      claseId = nuevaClase.id
+    }
+
+    if (asistenciasSeleccionadas.length > 0) {
+      const asistenciasInsert = asistenciasSeleccionadas.map(alumnoId => ({
+        clase_id: claseId,
+        usuario_id: alumnoId,
+        tipo_id: 'regular',
+        estado_id: 'confirmada',
+      }))
+
+      await supabase.from('asistencias').insert(asistenciasInsert)
+    }
+
+    setGuardandoAsistencia(false)
+    setAsistenciaGuardada(true)
+    setModoEdicion(false)
+    setExitoAsistencia(true)
+    setTimeout(() => setExitoAsistencia(false), 3000)
   }
 
   function getInscriptos(horario: any) {
@@ -131,12 +274,92 @@ export default function VistaDocenteHorarios() {
         </div>
       )}
 
+      {horarioSeleccionado && (
+        <div className="fixed inset-y-0 right-0 w-80 bg-white border-l border-gray-100 shadow-lg z-50 flex flex-col">
+          <div className="p-5 border-b border-gray-100">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="font-semibold text-gray-800">{horarioSeleccionado.nombre}</h2>
+                <p className="text-sm text-gray-500">{horarioSeleccionado.dia} • {horarioSeleccionado.hora?.slice(0, 5)}</p>
+              </div>
+              <button onClick={() => { setHorarioSeleccionado(null); setAlumnosDelHorario([]); setAsistenciasSeleccionadas([]); setModoEdicion(false); setAsistenciaGuardada(false) }} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="mt-3">
+              <p className="text-sm text-gray-500">Alumnos inscriptos</p>
+              <p className="text-lg font-semibold text-gray-800">{alumnosDelHorario.length} / {horarioSeleccionado.cupo_maximo}</p>
+            </div>
+          </div>
+          <div className="p-5 flex-1 overflow-y-auto">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-medium text-gray-600">Asistencia</h3>
+              <input type="date" value={fechaAsistencia} onChange={(e) => { setFechaAsistencia(e.target.value); cargarAsistenciaPorFecha(horarioSeleccionado.id, e.target.value) }} className="border border-gray-200 text-gray-900 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-naranja-300" />
+            </div>
+            {alumnosDelHorario.length === 0 ? (
+              <p className="text-gray-400 text-sm">No hay alumnos inscriptos en este horario.</p>
+            ) : asistenciaGuardada && !modoEdicion ? (
+              <div>
+                <div className="flex flex-col gap-2 mb-4">
+                  {alumnosDelHorario.map((alumno: any) => (
+                    <div key={alumno.id} className="flex items-center gap-3 p-2 rounded-lg">
+                      <div className={`w-5 h-5 rounded flex items-center justify-center text-xs ${asistenciasSeleccionadas.includes(alumno.id) ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                        {asistenciasSeleccionadas.includes(alumno.id) ? '✓' : '✗'}
+                      </div>
+                      <span className={`text-sm ${asistenciasSeleccionadas.includes(alumno.id) ? 'text-gray-800' : 'text-gray-400'}`}>{alumno.nombre} {alumno.apellido}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 text-center mb-3">Asistencia registrada: {asistenciasSeleccionadas.length}/{alumnosDelHorario.length} presentes</p>
+                {puedeMarcarAsistencia() && (
+                  <button onClick={() => setModoEdicion(true)} className="w-full border border-naranja-300 text-naranja-600 rounded-lg py-2.5 text-sm font-medium hover:bg-naranja-50 transition-colors">Editar asistencia</button>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {!puedeMarcarAsistencia() && !asistenciaGuardada && (
+                  <p className="text-xs text-gray-400 mb-2">La asistencia solo se puede marcar desde el horario de la clase hasta el final del día.</p>
+                )}
+                {puedeMarcarAsistencia() ? (
+                  alumnosDelHorario.map((alumno: any) => (
+                    <label key={alumno.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={asistenciasSeleccionadas.includes(alumno.id)}
+                        onChange={() => toggleAsistencia(alumno.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-naranja-500 focus:ring-naranja-300"
+                      />
+                      <span className="text-sm text-gray-800">{alumno.nombre} {alumno.apellido}</span>
+                    </label>
+                  ))
+                ) : (
+                  alumnosDelHorario.map((alumno: any) => (
+                    <div key={alumno.id} className="flex items-center gap-3 p-2 rounded-lg">
+                      <div className="w-4 h-4 rounded border border-gray-200 bg-gray-50"></div>
+                      <span className="text-sm text-gray-400">{alumno.nombre} {alumno.apellido}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+          <div className="p-5 border-t border-gray-100">
+            {exitoAsistencia && <p className="text-green-600 text-sm text-center mb-2">✓ Asistencia guardada correctamente</p>}
+            {puedeMarcarAsistencia() && (!asistenciaGuardada || modoEdicion) && (
+              <button onClick={handleGuardarAsistencia} disabled={guardandoAsistencia} className="w-full bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">
+                {guardandoAsistencia ? 'Guardando...' : 'Guardar asistencia'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {horarios.length === 0 ? (
         <p className="text-gray-400 text-sm">Aún no hay horarios creados.</p>
       ) : vista === 'calendario' ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {horarios.map((horario) => (
-            <div key={horario.id} className="bg-white rounded-xl border border-gray-100 p-5">
+            <div key={horario.id} onClick={() => handleSeleccionarHorario(horario)} className="bg-white rounded-xl border border-gray-100 p-5 cursor-pointer hover:shadow-md transition-shadow">
               <h3 className="font-semibold text-gray-800">{horario.nombre}</h3>
               <div className="flex justify-between items-center mt-2">
                 <span className="text-sm text-gray-500">{horario.dia}</span>
@@ -157,7 +380,7 @@ export default function VistaDocenteHorarios() {
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
           {horarios.map((horario) => (
-            <div key={horario.id} className="flex justify-between items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50">
+            <div key={horario.id} onClick={() => handleSeleccionarHorario(horario)} className="flex justify-between items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer">
               <div>
                 <p className="font-semibold text-gray-800">{horario.nombre}</p>
                 <p className="text-sm text-gray-500">{horario.dia} • {horario.hora?.slice(0, 5)}</p>
