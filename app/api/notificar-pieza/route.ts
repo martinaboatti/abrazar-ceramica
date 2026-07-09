@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   let mensaje: string
 
   if (esFinal) {
-    mensaje = `🏺 *¡Tu pieza está lista!*\n\nTu pieza *${piezaNombre}* completó todas las etapas del proceso. ¡Ya podés pasar a retirarla por el taller!`
+    mensaje = `🏺 *¡Tu pieza está lista!*\n\nTu pieza *${piezaNombre}* completó todas las etapas del proceso. ¡Ya podés coordinar para retirarla por el taller!`
   } else {
     mensaje = `🏺 *Actualización de pieza*\n\nTu pieza *${piezaNombre}* avanzó a la etapa: *${estadoNombre}*`
   }
