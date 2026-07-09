@@ -14,6 +14,7 @@ export default function PerfilPage() {
   const [exito, setExito] = useState('')
   const [guardando, setGuardando] = useState(false)
   const supabase = createClient()
+  const nombreBot = 'abrazarceramica_bot'
 
   async function cargarPerfil() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -62,6 +63,17 @@ export default function PerfilPage() {
     setExito('Perfil actualizado correctamente.')
     setEditando(false)
     setGuardando(false)
+    cargarPerfil()
+  }
+
+  async function handleDesvincularTelegram() {
+    if (!confirm('¿Estás seguro de que querés desvincular tu cuenta de Telegram?')) return
+
+    await supabase
+      .from('usuarios')
+      .update({ telegram_chat_id: null })
+      .eq('id', usuario.id)
+
     cargarPerfil()
   }
 
@@ -121,7 +133,25 @@ export default function PerfilPage() {
             </div>
             <div>
               <p className="text-xs text-gray-400">Telegram</p>
-              <p className="text-sm text-gray-800">{usuario?.telegram_chat_id ? 'Vinculado ✓' : 'No vinculado'}</p>
+              {usuario?.telegram_chat_id ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-green-600">Vinculado ✓</p>
+                  <button onClick={handleDesvincularTelegram} className="text-xs text-red-400 hover:text-red-600">Desvincular</button>
+                </div>
+              ) : (
+                <div className="mt-1">
+                  <p className="text-sm text-gray-500 mb-2">No vinculado</p>
+                  <div className="bg-naranja-50 rounded-lg p-3">
+                    <p className="text-sm font-medium text-gray-800 mb-2">¿Cómo vincular?</p>
+                    <ol className="text-xs text-gray-600 flex flex-col gap-1">
+                      <li>1. Abrí Telegram y buscá el bot <strong>@{nombreBot}</strong></li>
+                      <li>2. Escribile <strong>/start</strong></li>
+                      <li>3. Después escribí <strong>/vincular {usuario?.email}</strong></li>
+                    </ol>
+                    <p className="text-xs text-gray-400 mt-2">Una vez vinculado, vas a recibir notificaciones cuando el estado de tus piezas cambie.</p>
+                  </div>
+                </div>
+              )}
             </div>
             {exito && <p className="text-green-600 text-sm">{exito}</p>}
             <button onClick={() => { setEditando(true); setExito('') }} className="self-start bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">Editar perfil</button>
