@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
-  const { alumnoId, piezaNombre, estadoNombre } = await request.json()
+  const { alumnoId, piezaNombre, estadoNombre, esFinal } = await request.json()
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,7 +19,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, notificado: false })
   }
 
-  const mensaje = `🏺 *Actualización de pieza*\n\nTu pieza *${piezaNombre}* avanzó a la etapa: *${estadoNombre}*`
+  let mensaje: string
+
+  if (esFinal) {
+    mensaje = `🏺 *¡Tu pieza está lista!*\n\nTu pieza *${piezaNombre}* completó todas las etapas del proceso. ¡Ya podés pasar a retirarla por el taller!`
+  } else {
+    mensaje = `🏺 *Actualización de pieza*\n\nTu pieza *${piezaNombre}* avanzó a la etapa: *${estadoNombre}*`
+  }
 
   try {
     await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {

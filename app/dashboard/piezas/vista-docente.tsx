@@ -192,6 +192,7 @@ export default function VistaDocente() {
         alumnoId: pieza.alumno_id,
         piezaNombre: pieza.nombre,
         estadoNombre: siguienteEstado.nombre,
+        esFinal,
       }),
     }).catch(() => {})
 
