@@ -1,3 +1,7 @@
+// Página de gestión de alumnos (/dashboard/alumnos)
+// Solo accesible por la docente (no aparece en el menú del alumno)
+// Cumple HU-007 (registro de alumnos), HU-008 (visualización), HU-010 (asignación de horarios)
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -5,9 +9,12 @@ import { createClient } from '@/utils/supabase'
 import { MoreVertical } from 'lucide-react'
 
 export default function AlumnosPage() {
+  // Estados de datos
   const [alumnos, setAlumnos] = useState<any[]>([])
   const [horarios, setHorarios] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
+
+  // Estados del formulario de agregar alumno
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
@@ -15,13 +22,19 @@ export default function AlumnosPage() {
   const [horarioId, setHorarioId] = useState('')
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
-  const [editandoHorario, setEditandoHorario] = useState<any>(null)
-  const [menuAbierto, setMenuAbierto] = useState<string | null>(null)
-  const [perfilAlumno, setPerfilAlumno] = useState<any>(null) 
+
+  // Estados de modales secundarios
+  const [editandoHorario, setEditandoHorario] = useState<any>(null)    // Modal de editar horario
+  const [menuAbierto, setMenuAbierto] = useState<string | null>(null)  // Menú de tres puntos
+  const [perfilAlumno, setPerfilAlumno] = useState<any>(null)          // Modal de ver perfil
   const [nuevoHorarioId, setNuevoHorarioId] = useState('')
+
   const supabase = createClient()
 
+  // Carga alumnos con sus inscripciones y horarios disponibles
   async function cargarDatos() {
+    // Consulta con relaciones anidadas: usuarios → inscripciones → horarios
+    // Trae los datos del alumno y el horario al que está inscripto en una sola consulta
     const { data: alumnosData } = await supabase
       .from('usuarios')
       .select('id, nombre, apellido, email, rol, created_at, inscripciones(horario_id, horarios(nombre, dia, hora))')
@@ -30,6 +43,7 @@ export default function AlumnosPage() {
 
     if (alumnosData) setAlumnos(alumnosData)
 
+    // Trae horarios con conteo de inscriptos para mostrar cupos disponibles
     const { data: horariosData } = await supabase
       .from('horarios')
       .select('*, inscripciones(count)')
@@ -43,6 +57,7 @@ export default function AlumnosPage() {
     cargarDatos()
   }, [])
 
+  // Arma el texto del horario asignado para mostrar en la tabla (ej: "Lunes 10:00")
   function getHorarioTexto(alumno: any) {
     if (!alumno.inscripciones || alumno.inscripciones.length === 0) return '-'
     return alumno.inscripciones.map((i: any) => {
@@ -52,11 +67,14 @@ export default function AlumnosPage() {
     }).filter(Boolean).join(', ')
   }
 
+  // Calcula cuántos cupos libres tiene un horario
   function getCuposDisponibles(horario: any) {
     const inscriptos = horario.inscripciones?.[0]?.count || 0
     return horario.cupo_maximo - inscriptos
   }
 
+  // Crea un nuevo alumno llamando a la API del servidor
+  // Usa la API porque necesita service_role para crear cuentas de autenticación de otros usuarios
   async function handleAgregar() {
     setError('')
     setGuardando(true)
@@ -67,8 +85,10 @@ export default function AlumnosPage() {
       return
     }
 
+    // Genera contraseña temporal aleatoria - el alumno puede cambiarla después con recuperar contraseña
     const password = Math.random().toString(36).slice(-8) + 'A1!'
 
+    // Llama a la API del servidor que usa service_role para crear la cuenta
     const res = await fetch('/api/crear-alumno', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -83,6 +103,7 @@ export default function AlumnosPage() {
       return
     }
 
+    // Limpia el formulario y recarga la lista
     setNombre('')
     setApellido('')
     setEmail('')
@@ -92,11 +113,14 @@ export default function AlumnosPage() {
     cargarDatos()
   }
 
+  // Da de baja a un alumno: borra inscripciones y elimina la cuenta
   async function handleDarDeBaja(alumnoId: string) {
     if (!confirm('¿Estás segura de que querés dar de baja a este alumno?')) return
 
+    // Primero borra las inscripciones del alumno
     await supabase.from('inscripciones').delete().eq('usuario_id', alumnoId)
 
+    // Después llama a la API para eliminar la cuenta de autenticación (requiere service_role)
     const res = await fetch('/api/baja-alumno', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,6 +130,7 @@ export default function AlumnosPage() {
     if (res.ok) cargarDatos()
   }
 
+  // Cambia el horario de un alumno: borra la inscripción anterior y crea una nueva
   async function handleCambiarHorario() {
     if (!editandoHorario || !nuevoHorarioId) return
 
@@ -132,6 +157,7 @@ export default function AlumnosPage() {
 
   return (
     <div>
+      {/* Encabezado con título y botón de agregar */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Gestión de alumnos</h1>
@@ -140,6 +166,7 @@ export default function AlumnosPage() {
         <button onClick={() => setMostrarFormulario(true)} className="bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium transition-colors">+ Agregar alumno</button>
       </div>
 
+      {/* Modal: Agregar nuevo alumno (HU-007) */}
       {mostrarFormulario && (
         <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
@@ -160,6 +187,7 @@ export default function AlumnosPage() {
                 <label className="text-sm text-gray-600 mb-1 block">Email</label>
                 <input type="email" placeholder="alumno@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
               </div>
+              {/* Dropdown de horarios con cupos disponibles - deshabilita los que están llenos */}
               <div>
                 <label className="text-sm text-gray-600 mb-1 block">Horario disponible</label>
                 <select value={horarioId} onChange={(e) => setHorarioId(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300">
@@ -184,6 +212,7 @@ export default function AlumnosPage() {
         </div>
       )}
 
+      {/* Modal: Ver perfil del alumno (HU-004 desde perspectiva docente) */}
       {perfilAlumno && (
         <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
@@ -191,6 +220,7 @@ export default function AlumnosPage() {
               <h2 className="text-lg font-semibold text-gray-800">Perfil del alumno</h2>
               <button onClick={() => setPerfilAlumno(null)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
             </div>
+            {/* Avatar con iniciales del alumno */}
             <div className="flex items-center gap-4 mb-5">
               <div className="w-14 h-14 rounded-full bg-naranja-50 flex items-center justify-center">
                 <span className="text-naranja-600 text-lg font-semibold">{perfilAlumno.nombre?.[0]}{perfilAlumno.apellido?.[0]}</span>
@@ -219,6 +249,7 @@ export default function AlumnosPage() {
         </div>
       )}
 
+      {/* Modal: Editar horario del alumno (HU-010) */}
       {editandoHorario && (
         <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
@@ -249,6 +280,7 @@ export default function AlumnosPage() {
         </div>
       )}
 
+      {/* Tabla de alumnos o mensaje vacío (HU-008) */}
       {alumnos.length === 0 ? (
         <p className="text-gray-400 text-sm">Aún no hay alumnos registrados.</p>
       ) : (
@@ -270,6 +302,7 @@ export default function AlumnosPage() {
                   <td className="px-6 py-4 text-sm text-gray-500">{alumno.email}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">{getHorarioTexto(alumno)}</td>
                   <td className="px-6 py-4"><span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">Activo</span></td>
+                  {/* Menú de tres puntos con acciones contextuales */}
                   <td className="px-6 py-4">
                     <div className="relative">
                       <button onClick={() => setMenuAbierto(menuAbierto === alumno.id ? null : alumno.id)} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">

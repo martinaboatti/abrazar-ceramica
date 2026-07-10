@@ -1,13 +1,18 @@
+// Layout del dashboard - envuelve todas las páginas dentro de /dashboard/
+// Implementa el menú lateral diferenciado por rol (docente vs alumno)
+// Responsive: en mobile se convierte en menú desplegable
+
 'use client'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase'
 import { useRouter, usePathname } from 'next/navigation'
-import { Palette, Users, CalendarDays, Megaphone, BookOpen, LogOut, UserCircle } from 'lucide-react'
+import { Palette, Users, CalendarDays, Megaphone, BookOpen, LogOut, UserCircle, Menu, X } from 'lucide-react'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<any>(null)
   const [cargando, setCargando] = useState(true)
+  const [menuMobileAbierto, setMenuMobileAbierto] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
@@ -29,6 +34,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     cargarUsuario()
   }, [])
+
+  // Cierra el menú mobile cuando se navega a otra página
+  useEffect(() => {
+    setMenuMobileAbierto(false)
+  }, [pathname])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -62,28 +72,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const menu = usuario.rol === 'docente' ? menuDocente : menuAlumno
 
+  // Contenido del menú reutilizado en desktop y mobile
+  const menuContent = (
+    <>
+      <nav className="flex-1 px-4">
+        {menu.map((item) => (
+          <button key={item.ruta} onClick={() => router.push(item.ruta)} className={`w-full text-left px-4 py-3 rounded-lg text-sm mb-1 flex items-center gap-3 transition-colors ${pathname === item.ruta ? 'bg-naranja-50 text-naranja-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <item.icono size={18} />
+            {item.nombre}
+          </button>
+        ))}
+      </nav>
+      <div className="p-4 border-t border-gray-100">
+        <button onClick={handleLogout} className="w-full text-left px-4 py-3 rounded-lg text-sm text-gray-500 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+          <LogOut size={18} /> Cerrar sesión
+        </button>
+      </div>
+    </>
+  )
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <aside className="w-64 bg-white border-r border-gray-100 flex flex-col">
+      {/* Sidebar desktop: visible solo en pantallas grandes */}
+      <aside className="hidden md:flex w-64 bg-white border-r border-gray-100 flex-col">
         <div className="p-6">
           <h1 className="text-xl font-semibold text-naranja-600">Abrazar</h1>
           <h1 className="text-xl font-semibold text-naranja-600">Cerámica</h1>
         </div>
-        <nav className="flex-1 px-4">
-          {menu.map((item) => (
-            <button key={item.ruta} onClick={() => router.push(item.ruta)} className={`w-full text-left px-4 py-3 rounded-lg text-sm mb-1 flex items-center gap-3 transition-colors ${pathname === item.ruta ? 'bg-naranja-50 text-naranja-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
-              <item.icono size={18} />
-              {item.nombre}
-            </button>
-          ))}
-        </nav>
-        <div className="p-4 border-t border-gray-100">
-          <button onClick={handleLogout} className="w-full text-left px-4 py-3 rounded-lg text-sm text-gray-500 hover:bg-gray-50 flex items-center gap-3 transition-colors">
-            <LogOut size={18} /> Cerrar sesión
-          </button>
-        </div>
+        {menuContent}
       </aside>
-      <main className="flex-1 p-8">
+
+      {/* Header mobile: visible solo en pantallas chicas */}
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-100 z-40 px-4 py-3 flex justify-between items-center">
+        <h1 className="text-lg font-semibold text-naranja-600">Abrazar Cerámica</h1>
+        <button onClick={() => setMenuMobileAbierto(!menuMobileAbierto)} className="p-2 rounded-lg hover:bg-gray-50">
+          {menuMobileAbierto ? <X size={24} className="text-gray-600" /> : <Menu size={24} className="text-gray-600" />}
+        </button>
+      </div>
+
+      {/* Menu mobile desplegable */}
+      {menuMobileAbierto && (
+        <div className="md:hidden fixed inset-0 top-14 bg-white z-30 flex flex-col">
+          <div className="pt-2">
+            {menuContent}
+          </div>
+        </div>
+      )}
+
+      {/* Área de contenido principal */}
+      <main className="flex-1 p-4 md:p-8 mt-14 md:mt-0">
         {children}
       </main>
     </div>

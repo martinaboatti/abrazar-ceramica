@@ -1,9 +1,14 @@
+// Página de horarios (/dashboard/horarios)
+// Selector de vista por rol: muestra la vista de docente o de alumno
+// Docente: gestión de horarios, cupos y registro de asistencia
+// Alumno: próximas clases, cancelación y reserva de recuperación
+
 'use client'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase'
-import VistaDocenteHorarios from './vista-docente'
-import VistaAlumnoHorarios from './vista-alumno'
+import VistaDocenteHorarios from './vista-docente'  // Horarios con panel de asistencia
+import VistaAlumnoHorarios from './vista-alumno'    // Clases del mes con cancelación y recuperación
 
 export default function HorariosPage() {
   const [rol, setRol] = useState<string | null>(null)

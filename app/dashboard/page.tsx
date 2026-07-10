@@ -1,3 +1,7 @@
+// Página principal del dashboard (/dashboard)
+// Muestra el saludo de bienvenida personalizado con el nombre del usuario
+// El subtítulo cambia según el rol (docente ve "Panel de gestión", alumno ve "Tus piezas activas")
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -12,6 +16,7 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // Trae solo nombre y rol, que es lo que necesitamos para el saludo
       const { data } = await supabase
         .from('usuarios')
         .select('nombre, rol')
@@ -23,6 +28,7 @@ export default function DashboardPage() {
     cargarUsuario()
   }, [])
 
+  // No muestra nada mientras carga (el layout ya muestra la estructura del menú)
   if (!usuario) return null
 
   return (
@@ -30,6 +36,7 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-semibold text-gray-800">
         Bienvenida de vuelta, {usuario.nombre}
       </h1>
+      {/* Subtítulo diferenciado por rol */}
       <p className="text-gray-400 text-sm mt-1">
         {usuario.rol === 'docente'
           ? 'Panel de gestión del taller'

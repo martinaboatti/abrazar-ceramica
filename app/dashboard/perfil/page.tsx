@@ -1,3 +1,8 @@
+// Página de perfil (/dashboard/perfil)
+// Cumple HU-004 (visualización de perfil) y HU-005 (edición de datos personales)
+// Incluye instrucciones para vincular/desvincular Telegram (HU-006)
+// Accesible tanto para docente como alumno
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -7,19 +12,22 @@ import { User } from 'lucide-react'
 export default function PerfilPage() {
   const [usuario, setUsuario] = useState<any>(null)
   const [cargando, setCargando] = useState(true)
-  const [editando, setEditando] = useState(false)
+  const [editando, setEditando] = useState(false)  // Controla si está en modo edición
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
   const [error, setError] = useState('')
-  const [exito, setExito] = useState('')
+  const [exito, setExito] = useState('')           // Mensaje de éxito después de guardar
   const [guardando, setGuardando] = useState(false)
   const supabase = createClient()
+
+  // Nombre de usuario del bot de Telegram (sin @) para las instrucciones de vinculación
   const nombreBot = 'abrazarceramica_bot'
 
   async function cargarPerfil() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Trae todos los campos del usuario para mostrar en el perfil
     const { data } = await supabase
       .from('usuarios')
       .select('*')
@@ -38,6 +46,7 @@ export default function PerfilPage() {
     cargarPerfil()
   }, [])
 
+  // Guarda los cambios de nombre y apellido (HU-005)
   async function handleGuardar() {
     setError('')
     setExito('')
@@ -49,6 +58,7 @@ export default function PerfilPage() {
       return
     }
 
+    // Actualiza solo nombre y apellido - el email no es editable
     const { error: updateError } = await supabase
       .from('usuarios')
       .update({ nombre, apellido })
@@ -66,6 +76,7 @@ export default function PerfilPage() {
     cargarPerfil()
   }
 
+  // Desvincula Telegram poniendo telegram_chat_id en null (HU-006 criterio 4)
   async function handleDesvincularTelegram() {
     if (!confirm('¿Estás seguro de que querés desvincular tu cuenta de Telegram?')) return
 
@@ -87,17 +98,21 @@ export default function PerfilPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-100 p-6 max-w-lg">
+        {/* Avatar con iniciales del usuario (HU-004 criterio 2: avatar si no tiene foto) */}
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-full bg-naranja-50 flex items-center justify-center">
             <span className="text-naranja-600 text-xl font-semibold">{usuario?.nombre?.[0]}{usuario?.apellido?.[0]}</span>
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-800">{usuario?.nombre} {usuario?.apellido}</h2>
+            {/* Badge de rol con color diferenciado */}
             <span className={`text-xs px-2 py-0.5 rounded-full ${usuario?.rol === 'docente' ? 'bg-naranja-50 text-naranja-700' : 'bg-blue-50 text-blue-700'}`}>{usuario?.rol === 'docente' ? 'Docente' : 'Alumno'}</span>
           </div>
         </div>
 
+        {/* Renderizado condicional: modo edición o modo lectura */}
         {editando ? (
+          // === MODO EDICIÓN (HU-005) ===
           <div className="flex flex-col gap-3">
             <div>
               <label className="text-sm text-gray-600 mb-1 block">Nombre</label>
@@ -109,15 +124,18 @@ export default function PerfilPage() {
             </div>
             <div>
               <label className="text-sm text-gray-600 mb-1 block">Email</label>
+              {/* Email deshabilitado - no se puede cambiar porque es el identificador de autenticación */}
               <input type="email" value={usuario?.email} disabled className="w-full border border-gray-200 text-gray-400 rounded-lg px-4 py-2.5 text-sm bg-gray-50" />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <div className="flex gap-3 mt-2">
+              {/* Cancelar: restaura los valores originales */}
               <button onClick={() => { setEditando(false); setNombre(usuario.nombre); setApellido(usuario.apellido); setError('') }} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
               <button onClick={handleGuardar} disabled={guardando} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">{guardando ? 'Guardando...' : 'Guardar cambios'}</button>
             </div>
           </div>
         ) : (
+          // === MODO LECTURA (HU-004) ===
           <div className="flex flex-col gap-4">
             <div>
               <p className="text-xs text-gray-400">Nombre</p>
@@ -131,14 +149,17 @@ export default function PerfilPage() {
               <p className="text-xs text-gray-400">Email</p>
               <p className="text-sm text-gray-800">{usuario?.email}</p>
             </div>
+            {/* === SECCIÓN TELEGRAM (HU-006) === */}
             <div>
               <p className="text-xs text-gray-400">Telegram</p>
               {usuario?.telegram_chat_id ? (
+                // Telegram vinculado: muestra estado y botón para desvincular
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-green-600">Vinculado ✓</p>
                   <button onClick={handleDesvincularTelegram} className="text-xs text-red-400 hover:text-red-600">Desvincular</button>
                 </div>
               ) : (
+                // Telegram no vinculado: muestra instrucciones paso a paso
                 <div className="mt-1">
                   <p className="text-sm text-gray-500 mb-2">No vinculado</p>
                   <div className="bg-naranja-50 rounded-lg p-3">

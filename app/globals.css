@@ -1,34 +1,37 @@
+/* Estilos globales de la aplicación */
+/* Importa Tailwind CSS como base de todo el sistema de estilos */
 @import "tailwindcss";
 
+/* Variables CSS globales - modo claro */
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
+/* Configuración de tema para Tailwind CSS v4 */
+/* Acá se definen los colores personalizados y las fuentes */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-naranja-50: #fdf3ee;
+
+  /* Paleta personalizada "naranja" - color identitario de Abrazar Cerámica */
+  /* Reemplaza el naranja estándar de Tailwind por un tono amarronado */
+  /* Se usa con clases como bg-naranja-500, text-naranja-700, etc. */
+  --color-naranja-50: #fdf3ee;   /* Fondos muy suaves (badges, hover) */
   --color-naranja-100: #f9e0d2;
   --color-naranja-200: #f3c4a8;
-  --color-naranja-300: #e9a17a;
-  --color-naranja-400: #d4845c;
-  --color-naranja-500: #c4704b;
-  --color-naranja-600: #b25a38;
-  --color-naranja-700: #94472d;
+  --color-naranja-300: #e9a17a;  /* Bordes de focus en inputs */
+  --color-naranja-400: #d4845c;  /* Barras de progreso */
+  --color-naranja-500: #c4704b;  /* Color principal - botones, enlaces */
+  --color-naranja-600: #b25a38;  /* Hover de botones */
+  --color-naranja-700: #94472d;  /* Texto destacado sobre fondo claro */
   --color-naranja-800: #773a27;
-  --color-naranja-900: #613022;
+  --color-naranja-900: #613022;  /* Tono más oscuro */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Estilos base del body */
 body {
   background: var(--background);
   color: var(--foreground);

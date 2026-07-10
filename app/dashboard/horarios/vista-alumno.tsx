@@ -1,3 +1,8 @@
+// Vista de horarios para el alumno (/dashboard/horarios/vista-alumno.tsx)
+// Cumple HU-013 (cancelación de asistencia con anticipación mínima),
+// HU-014 (reserva de clase de recuperación con verificación de cupo)
+// Muestra las clases del mes actual, permite cancelar y reservar recuperaciones
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -5,12 +10,16 @@ import { createClient } from '@/utils/supabase'
 import { Clock } from 'lucide-react'
 
 export default function VistaAlumnoHorarios() {
-  const [proximasClases, setProximasClases] = useState<any[]>([])
-  const [horariosRecuperacion, setHorariosRecuperacion] = useState<any[]>([])
+  // === ESTADOS DE DATOS ===
+  const [proximasClases, setProximasClases] = useState<any[]>([])           // Clases regulares + recuperaciones
+  const [horariosRecuperacion, setHorariosRecuperacion] = useState<any[]>([]) // Horarios disponibles para recuperar
   const [tieneCancelacionesPendientes, setTieneCancelacionesPendientes] = useState(false)
   const [cargando, setCargando] = useState(true)
-  const [confirmandoCancelar, setConfirmandoCancelar] = useState<any>(null)
-  const [confirmandoReservar, setConfirmandoReservar] = useState<any>(null)
+
+  // === ESTADOS DE MODALES DE CONFIRMACIÓN ===
+  const [confirmandoCancelar, setConfirmandoCancelar] = useState<any>(null)   // Modal de cancelar clase
+  const [confirmandoReservar, setConfirmandoReservar] = useState<any>(null)   // Modal de reservar recuperación
+
   const supabase = createClient()
 
   async function cargarDatos() {
@@ -18,51 +27,55 @@ export default function VistaAlumnoHorarios() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // 1. Traer inscripciones del alumno con datos del horario
+    // 1. Traer inscripciones del alumno (horarios fijos)
     const { data: inscripciones } = await supabase
       .from('inscripciones')
       .select('*, horarios(*)')
       .eq('usuario_id', user.id)
 
-    // 2. Traer todas las asistencias del alumno
+    // 2. Traer todas las asistencias del alumno (cancelaciones y recuperaciones)
     const { data: asistencias } = await supabase
       .from('asistencias')
       .select('*, clases(fecha, horario_id)')
       .eq('usuario_id', user.id)
 
-    // 3. Armar lista de próximas clases regulares
+    // 3. Armar lista de próximas clases regulares del mes actual
+    // Por cada inscripción genera todas las fechas de ese día de la semana hasta fin de mes
+    // y excluye las que fueron canceladas
     const clasesRegulares: any[] = []
 
     if (inscripciones) {
       inscripciones.forEach((insc: any) => {
         const h = insc.horarios
         const hoy = new Date()
-        const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
         const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)
 
-        // Generar todas las fechas de este horario en el mes actual
+        // Genera todas las fechas de este horario en el mes actual
         let fecha = getProximaFecha(h.dia)
 
-        // Si la primera fecha calculada es del mes siguiente, retroceder 7 días
+        // Si la primera fecha calculada es del mes siguiente, retroceder una semana
         if (fecha.getMonth() !== hoy.getMonth()) {
           fecha.setDate(fecha.getDate() - 7)
         }
 
-        // Si esa fecha ya pasó, avanzar al próximo
+        // Si esa fecha ya pasó, avanzar a la próxima
         if (fecha < hoy) {
           fecha.setDate(fecha.getDate() + 7)
         }
 
+        // Itera semana a semana hasta el fin del mes
         while (fecha <= ultimoDiaMes) {
           const fechaStr = fechaAString(fecha)
           const fechaCopia = new Date(fecha)
 
+          // Verifica si esta clase específica fue cancelada
           const cancelada = asistencias?.find((a: any) =>
             a.clases?.horario_id === h.id &&
             a.clases?.fecha === fechaStr &&
             a.tipo_id === 'cancelacion'
           )
 
+          // Solo agrega a la lista si no fue cancelada
           if (!cancelada) {
             clasesRegulares.push({
               id: `${insc.id}-${fechaStr}`,
@@ -73,20 +86,21 @@ export default function VistaAlumnoHorarios() {
             })
           }
 
-          fecha.setDate(fecha.getDate() + 7)
+          fecha.setDate(fecha.getDate() + 7) // Avanza una semana
         }
       })
     }
 
-    // 4. Traer clases de recuperación reservadas
+    // 4. Traer clases de recuperación reservadas (solo futuras)
     const clasesRecuperacion: any[] = []
 
     if (asistencias) {
       const recuperaciones = asistencias.filter((a: any) => a.tipo_id === 'recuperacion')
       for (const rec of recuperaciones) {
+        // Parseo manual de fecha para evitar problemas de zona horaria UTC-3
         const partes = rec.clases?.fecha.split('-')
         const fechaClase = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]))
-        if (fechaClase >= new Date(fechaAString(new Date()))) {
+        if (fechaClase >= new Date(new Date().toISOString().split('T')[0])) {
           const { data: horario } = await supabase
             .from('horarios')
             .select('*')
@@ -99,24 +113,26 @@ export default function VistaAlumnoHorarios() {
               tipo: 'recuperacion',
               horario,
               proximaFecha: fechaClase,
-              puedeCancelar: false,
+              puedeCancelar: false, // Las recuperaciones no se pueden cancelar
             })
           }
         }
       }
     }
 
+    // Combina regulares + recuperaciones ordenadas cronológicamente
     setProximasClases([...clasesRegulares, ...clasesRecuperacion].sort((a, b) =>
       a.proximaFecha.getTime() - b.proximaFecha.getTime()
     ))
 
-    // 5. Calcular si tiene cancelaciones pendientes de recuperar
+    // 5. Calcular si tiene cancelaciones pendientes de recuperar (HU-014)
+    // Si canceló 2 y recuperó 1, tiene 1 pendiente y puede reservar otra
     const totalCancelaciones = asistencias?.filter((a: any) => a.tipo_id === 'cancelacion').length || 0
     const totalRecuperaciones = asistencias?.filter((a: any) => a.tipo_id === 'recuperacion').length || 0
     const pendientes = totalCancelaciones - totalRecuperaciones
     setTieneCancelacionesPendientes(pendientes > 0)
 
-    // 6. Traer horarios disponibles para recuperación
+    // 6. Traer horarios disponibles para recuperación (solo si tiene pendientes)
     if (pendientes > 0) {
       const { data: todosHorarios } = await supabase
         .from('horarios')
@@ -124,12 +140,12 @@ export default function VistaAlumnoHorarios() {
         .order('dia')
 
       if (todosHorarios) {
-        // Contar recuperaciones ya reservadas por horario para la próxima fecha
+        // Filtra horarios que tienen cupo disponible considerando inscriptos + recuperaciones
         const disponibles = todosHorarios.filter((h: any) => {
           const inscriptos = h.inscripciones?.[0]?.count || 0
           const fechaProxima = fechaAString(getProximaFecha(h.dia))
 
-          // Contar recuperaciones para esta fecha
+          // Cuenta recuperaciones ya reservadas para esta fecha específica
           const recuperacionesEnFecha = asistencias?.filter((a: any) =>
             a.tipo_id === 'recuperacion' &&
             a.clases?.horario_id === h.id &&
@@ -139,7 +155,7 @@ export default function VistaAlumnoHorarios() {
           return (inscriptos + recuperacionesEnFecha) < h.cupo_maximo
         })
 
-        // Excluir horarios donde el alumno ya está inscripto o ya reservó
+        // Excluye horarios donde el alumno ya está inscripto o ya reservó
         const misHorarioIds = inscripciones?.map((i: any) => i.horario_id) || []
         const yaReservadoIds = asistencias
           ?.filter((a: any) => a.tipo_id === 'recuperacion')
@@ -160,6 +176,7 @@ export default function VistaAlumnoHorarios() {
     cargarDatos()
   }, [])
 
+  // Calcula la próxima fecha para un día de la semana (ej: próximo "Lunes")
   function getProximaFecha(dia: string): Date {
     const dias: any = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0 }
     const hoy = new Date()
@@ -172,6 +189,7 @@ export default function VistaAlumnoHorarios() {
     return proxima
   }
 
+  // Verifica si el alumno puede cancelar según la anticipación mínima configurada (HU-013)
   function puedeCancelar(fecha: Date, horasAnticipacion: number): boolean {
     const ahora = new Date()
     const diff = fecha.getTime() - ahora.getTime()
@@ -179,6 +197,8 @@ export default function VistaAlumnoHorarios() {
     return horasRestantes >= horasAnticipacion
   }
 
+  // Convierte una fecha a string YYYY-MM-DD sin problemas de zona horaria
+  // Necesario porque toISOString() convierte a UTC y en Argentina (UTC-3) puede cambiar el día
   function fechaAString(fecha: Date): string {
     const año = fecha.getFullYear()
     const mes = String(fecha.getMonth() + 1).padStart(2, '0')
@@ -186,13 +206,15 @@ export default function VistaAlumnoHorarios() {
     return `${año}-${mes}-${dia}`
   }
 
+  // === CANCELAR CLASE (HU-013) ===
+  // Crea o busca la clase y registra una asistencia de tipo cancelación
   async function handleCancelar(item: any) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
     const fechaStr = fechaAString(item.proximaFecha)
 
-    // Buscar o crear la clase
+    // Busca si ya existe una clase para ese horario y fecha
     let claseId: string
     const { data: claseExistente } = await supabase
       .from('clases')
@@ -204,6 +226,7 @@ export default function VistaAlumnoHorarios() {
     if (claseExistente) {
       claseId = claseExistente.id
     } else {
+      // Si no existe, la crea
       const { data: nuevaClase } = await supabase
         .from('clases')
         .insert({ horario_id: item.horario.id, fecha: fechaStr })
@@ -213,7 +236,7 @@ export default function VistaAlumnoHorarios() {
       claseId = nuevaClase.id
     }
 
-    // Verificar si ya existe asistencia para esta clase
+    // Verifica si ya existe un registro de asistencia para evitar duplicados
     const { data: asistenciaExistente } = await supabase
       .from('asistencias')
       .select('id')
@@ -222,11 +245,13 @@ export default function VistaAlumnoHorarios() {
       .maybeSingle()
 
     if (asistenciaExistente) {
+      // Si ya existe, actualiza a cancelación
       await supabase
         .from('asistencias')
         .update({ tipo_id: 'cancelacion', estado_id: 'cancelada' })
         .eq('id', asistenciaExistente.id)
     } else {
+      // Si no existe, crea nueva
       await supabase.from('asistencias').insert({
         clase_id: claseId,
         usuario_id: user.id,
@@ -236,9 +261,11 @@ export default function VistaAlumnoHorarios() {
     }
 
     setConfirmandoCancelar(null)
-    cargarDatos()
+    cargarDatos() // Recarga para reflejar los cambios
   }
 
+  // === RESERVAR RECUPERACIÓN (HU-014) ===
+  // Similar a cancelar pero crea una asistencia de tipo recuperación
   async function handleReservar(horario: any) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -246,7 +273,6 @@ export default function VistaAlumnoHorarios() {
     const fechaClase = getProximaFecha(horario.dia)
     const fechaStr = fechaAString(fechaClase)
 
-    // Buscar o crear la clase
     let claseId: string
     const { data: claseExistente } = await supabase
       .from('clases')
@@ -284,9 +310,11 @@ export default function VistaAlumnoHorarios() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-gray-800">Mi horario</h1>
+        {/* Muestra el mes actual en español */}
         <p className="text-gray-400 text-sm mt-1">Clases de {new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}</p>
       </div>
 
+      {/* === PRÓXIMAS CLASES (regulares + recuperaciones ordenadas por fecha) === */}
       <h2 className="text-lg font-semibold text-gray-800 mb-3">Próximas clases</h2>
 
       {proximasClases.length === 0 ? (
@@ -298,11 +326,13 @@ export default function VistaAlumnoHorarios() {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold text-gray-800">{item.horario.nombre}</h3>
+                  {/* Badge "Recuperación" para diferenciar de las regulares */}
                   {item.tipo === 'recuperacion' && (
                     <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Recuperación</span>
                   )}
                 </div>
                 <p className="text-sm text-gray-500">{item.proximaFecha.toLocaleDateString()} • {item.horario.hora?.slice(0, 5)}</p>
+                {/* Aviso cuando el plazo de cancelación ya venció (HU-013 criterio 2) */}
                 {item.tipo === 'regular' && !item.puedeCancelar && (
                   <div className="flex items-center gap-1 mt-1">
                     <Clock size={12} className="text-gray-400" />
@@ -310,6 +340,7 @@ export default function VistaAlumnoHorarios() {
                   </div>
                 )}
               </div>
+              {/* Solo las clases regulares se pueden cancelar (las recuperaciones no) */}
               {item.tipo === 'regular' && (
                 <button
                   onClick={() => setConfirmandoCancelar(item)}
@@ -324,6 +355,7 @@ export default function VistaAlumnoHorarios() {
         </div>
       )}
 
+      {/* === MODAL: CONFIRMAR CANCELACIÓN === */}
       {confirmandoCancelar && (
         <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
@@ -341,6 +373,7 @@ export default function VistaAlumnoHorarios() {
         </div>
       )}
 
+      {/* === MODAL: CONFIRMAR RESERVA DE RECUPERACIÓN === */}
       {confirmandoReservar && (
         <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
@@ -357,9 +390,11 @@ export default function VistaAlumnoHorarios() {
         </div>
       )}
 
+      {/* === SECCIÓN DE RECUPERACIÓN (solo visible si tiene cancelaciones pendientes) === */}
       {tieneCancelacionesPendientes && (
         <>
           <h2 className="text-lg font-semibold text-gray-800 mb-3">Reservar clase de recuperación</h2>
+          {/* Advertencia: las recuperaciones no se pueden cancelar después */}
           <p className="text-sm text-naranja-600 bg-naranja-50 rounded-lg p-3 mb-3">⚠️ Una vez reservada, la clase de recuperación no puede cancelarse.</p>
           {horariosRecuperacion.length === 0 ? (
             <p className="text-gray-400 text-sm">No hay horarios con cupo disponible para recuperar.</p>
@@ -383,6 +418,7 @@ export default function VistaAlumnoHorarios() {
         </>
       )}
 
+      {/* Mensaje cuando no hay nada pendiente de recuperar */}
       {!tieneCancelacionesPendientes && proximasClases.length > 0 && (
         <p className="text-gray-400 text-sm">No tenés clases pendientes de recuperar.</p>
       )}
