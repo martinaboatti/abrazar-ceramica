@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Páginas que se pueden ver sin estar logueado
-  const rutasPublicas = ['/login', '/registro', '/recuperar', '/nueva-password']
+  const rutasPublicas = ['/login', '/recuperar', '/nueva-password']
   const esRutaPublica = rutasPublicas.includes(request.nextUrl.pathname)
 
   // Regla 1: si NO hay usuario y la ruta es privada → redirige al login
