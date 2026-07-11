@@ -284,7 +284,7 @@ export default function AlumnosPage() {
       {alumnos.length === 0 ? (
         <p className="text-gray-400 text-sm">Aún no hay alumnos registrados.</p>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-100">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-100">

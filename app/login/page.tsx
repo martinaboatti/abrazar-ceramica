@@ -87,7 +87,7 @@ export default function LoginPage() {
             href="/recuperar"
             className="text-center text-sm text-naranja-500 hover:underline"
           >
-            ¿Olvidaste tu contraseña?
+            ¿Olvidaste tu contraseña o es tu primera vez acá?
           </a>
         </div>
       </div>
