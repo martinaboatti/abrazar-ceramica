@@ -23,6 +23,7 @@ export default function VistaDocente() {
   const [editandoPieza, setEditandoPieza] = useState<any>(null)       // Pieza en modo edición
   const [menuAbierto, setMenuAbierto] = useState<string | null>(null) // Menú de tres puntos
   const [piezaAvanzar, setPiezaAvanzar] = useState<any>(null)         // Modal de confirmación de avance
+  const [piezaEliminar, setPiezaEliminar] = useState<any>(null)
 
   // === ESTADOS DE FORMULARIO DE PIEZA ===
   const [nombrePieza, setNombrePieza] = useState('')
@@ -199,9 +200,9 @@ export default function VistaDocente() {
   // === ELIMINAR PIEZA ===
   // Borra primero el historial y después la pieza
   async function handleEliminarPieza(piezaId: string) {
-    if (!confirm('¿Estás segura de que querés eliminar esta pieza?')) return
     await supabase.from('historial_estados').delete().eq('pieza_id', piezaId)
     await supabase.from('piezas').delete().eq('id', piezaId)
+    setPiezaEliminar(null)
     cargarDatos()
   }
 
@@ -376,6 +377,23 @@ export default function VistaDocente() {
         </div>
       )}
 
+      {/* === MODAL: ELIMINAR PIEZA === */}      
+      {piezaEliminar && (
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Eliminar pieza</h2>
+              <button onClick={() => setPiezaEliminar(null)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">¿Estás segura de que querés eliminar <strong>{piezaEliminar.nombre}</strong>? Esta acción no se puede deshacer.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setPiezaEliminar(null)} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button onClick={() => handleEliminarPieza(piezaEliminar.id)} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors">Sí, eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* === MODAL: AVANZAR PIEZA (HU-017) === */}
       {/* Muestra etapa actual → siguiente etapa con confirmación */}
       {piezaAvanzar && (() => {
@@ -500,7 +518,7 @@ export default function VistaDocente() {
                               {menuAbierto === pieza.id && (
                                 <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 w-36">
                                   <button onClick={() => { setEditandoPieza(pieza); setNombrePieza(pieza.nombre); setTecnicaPieza(pieza.tecnica); setMostrarFormPieza(true); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Editar pieza</button>
-                                  <button onClick={() => { handleEliminarPieza(pieza.id); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50">Eliminar pieza</button>
+                                  <button onClick={() => { setPiezaEliminar(pieza); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50">Eliminar pieza</button>
                                 </div>
                               )}
                             </div>

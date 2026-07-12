@@ -18,6 +18,7 @@ export default function AvisosPage() {
   // === ESTADOS DEL FORMULARIO (crear/editar) ===
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [editando, setEditando] = useState<any>(null)  // Si tiene valor, el modal edita en vez de crear
+  const [avisoEliminar, setAvisoEliminar] = useState<any>(null)
   const [titulo, setTitulo] = useState('')
   const [contenido, setContenido] = useState('')
   const [error, setError] = useState('')
@@ -103,8 +104,8 @@ export default function AvisosPage() {
 
   // Elimina un aviso con confirmación del navegador
   async function handleEliminar(avisoId: string) {
-    if (!confirm('¿Estás segura de que querés eliminar este aviso?')) return
     await supabase.from('avisos').delete().eq('id', avisoId)
+    setAvisoEliminar(null)
     cargarDatos()
   }
 
@@ -165,6 +166,23 @@ export default function AvisosPage() {
         </div>
       )}
 
+      {/* === MODAL: CONFIRMACIÓN DE ELIMINAR AVISO === */}
+      {avisoEliminar && (
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Eliminar aviso</h2>
+              <button onClick={() => setAvisoEliminar(null)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">¿Estás segura de que querés eliminar <strong>{avisoEliminar.titulo}</strong>? Esta acción no se puede deshacer.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setAvisoEliminar(null)} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button onClick={() => handleEliminar(avisoEliminar.id)} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors">Sí, eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* === LISTADO DE AVISOS === */}
       {avisos.length === 0 ? (
         <p className="text-gray-400 text-sm">Aún no hay avisos publicados.</p>
@@ -189,7 +207,7 @@ export default function AvisosPage() {
                 {esDocente && (
                   <div className="flex gap-2">
                     <button onClick={() => handleEditar(aviso)} className="text-xs text-gray-400 hover:text-gray-600">Editar</button>
-                    <button onClick={() => handleEliminar(aviso.id)} className="text-xs text-red-400 hover:text-red-600">Eliminar</button>
+                    <button onClick={() => setAvisoEliminar(aviso)} className="text-xs text-red-400 hover:text-red-600">Eliminar</button>
                   </div>
                 )}
               </div>

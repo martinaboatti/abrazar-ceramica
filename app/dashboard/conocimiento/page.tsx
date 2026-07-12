@@ -31,6 +31,7 @@ export default function ConocimientoPage() {
 
   // === ESTADO DEL ACORDEÓN ===
   const [expandido, setExpandido] = useState<string | null>(null) // ID de la entrada abierta
+  const [entradaEliminar, setEntradaEliminar] = useState<any>(null)
 
   const supabase = createClient()
 
@@ -114,8 +115,8 @@ export default function ConocimientoPage() {
   }
 
   async function handleEliminar(entradaId: string) {
-    if (!confirm('¿Estás segura de que querés eliminar esta entrada?')) return
     await supabase.from('entradas_tecnicas').delete().eq('id', entradaId)
+    setEntradaEliminar(null)
     cargarDatos()
   }
 
@@ -210,6 +211,23 @@ export default function ConocimientoPage() {
         </div>
       )}
 
+      {/* === MODAL: CONFIRMACIÓN DE ELIMINACIÓN DE ENTRADA */}
+      {entradaEliminar && (
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Eliminar entrada</h2>
+              <button onClick={() => setEntradaEliminar(null)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">¿Estás segura de que querés eliminar <strong>{entradaEliminar.titulo}</strong>? Esta acción no se puede deshacer.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setEntradaEliminar(null)} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button onClick={() => handleEliminar(entradaEliminar.id)} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors">Sí, eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* === LISTADO DE ENTRADAS EN FORMATO ACORDEÓN === */}
       {/* Cada entrada se expande al hacer clic mostrando descripción y materiales */}
       {entradasFiltradas.length === 0 ? (
@@ -231,7 +249,7 @@ export default function ConocimientoPage() {
                     <div className="flex gap-2">
                       {/* stopPropagation evita que el clic en editar/eliminar abra/cierre el acordeón */}
                       <span onClick={(e) => { e.stopPropagation(); handleEditar(entrada) }} className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer">Editar</span>
-                      <span onClick={(e) => { e.stopPropagation(); handleEliminar(entrada.id) }} className="text-xs text-red-400 hover:text-red-600 cursor-pointer">Eliminar</span>
+                      <span onClick={(e) => { e.stopPropagation(); setEntradaEliminar(entrada) }} className="text-xs text-red-400 hover:text-red-600 cursor-pointer">Eliminar</span>
                     </div>
                   )}
                   {/* Flecha que indica si está expandido o colapsado */}

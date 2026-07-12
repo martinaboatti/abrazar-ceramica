@@ -44,6 +44,7 @@ export default function VistaDocenteHorarios() {
   const [cupoMaximoEditar, setCupoMaximoEditar] = useState('')
   const [horasCancelacionEditar, setHorasCancelacionEditar] = useState('')
   const [menuHorarioAbierto, setMenuHorarioAbierto] = useState<string | null>(null)
+  const [horarioEliminar, setHorarioEliminar] = useState<any>(null)
 
   const supabase = createClient()
 
@@ -138,10 +139,10 @@ export default function VistaDocenteHorarios() {
   // === ELIMINAR HORARIO (HU-009) ===
   // Borra inscripciones y clases asociadas antes de eliminar el horario
   async function handleEliminarHorario(horarioId: string) {
-    if (!confirm('¿Estás segura? Se eliminarán también las inscripciones asociadas.')) return
     await supabase.from('inscripciones').delete().eq('horario_id', horarioId)
     await supabase.from('clases').delete().eq('horario_id', horarioId)
     await supabase.from('horarios').delete().eq('id', horarioId)
+    setHorarioEliminar(null)
     cargarHorarios()
   }
 
@@ -401,6 +402,23 @@ export default function VistaDocenteHorarios() {
         </div>
       )}
 
+      {/* === MODAL: CONFIRMAR ELIMINACIÓN DE HORARIO (HU-009) === */}      
+      {horarioEliminar && (
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Eliminar horario</h2>
+              <button onClick={() => setHorarioEliminar(null)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">¿Estás segura de que querés eliminar <strong>{horarioEliminar.nombre}</strong>? Se eliminarán también las inscripciones asociadas. Esta acción no se puede deshacer.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setHorarioEliminar(null)} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button onClick={() => handleEliminarHorario(horarioEliminar.id)} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors">Sí, eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* === PANEL LATERAL: REGISTRO DE ASISTENCIA (HU-011) === */}
       {horarioSeleccionado && (
         <div className="fixed inset-y-0 right-0 w-80 bg-white border-l border-gray-100 shadow-lg z-50 flex flex-col">
@@ -503,7 +521,7 @@ export default function VistaDocenteHorarios() {
                   {menuHorarioAbierto === horario.id && (
                     <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 w-36">
                       <button onClick={() => { abrirEditarHorario(horario); setMenuHorarioAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Editar</button>
-                      <button onClick={() => { handleEliminarHorario(horario.id); setMenuHorarioAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50">Eliminar</button>
+                      <button onClick={() => { setHorarioEliminar(horario); setMenuHorarioAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50">Eliminar</button>
                     </div>
                   )}
                 </div>

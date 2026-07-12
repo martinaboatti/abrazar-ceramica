@@ -27,6 +27,7 @@ export default function AlumnosPage() {
   const [editandoHorario, setEditandoHorario] = useState<any>(null)    // Modal de editar horario
   const [menuAbierto, setMenuAbierto] = useState<string | null>(null)  // Menú de tres puntos
   const [perfilAlumno, setPerfilAlumno] = useState<any>(null)          // Modal de ver perfil
+  const [alumnoEliminar, setAlumnoEliminar] = useState<any>(null)
   const [nuevoHorarioId, setNuevoHorarioId] = useState('')
 
   const supabase = createClient()
@@ -115,8 +116,7 @@ export default function AlumnosPage() {
 
   // Da de baja a un alumno: borra inscripciones y elimina la cuenta
   async function handleDarDeBaja(alumnoId: string) {
-    if (!confirm('¿Estás segura de que querés dar de baja a este alumno?')) return
-
+    
     // Primero borra las inscripciones del alumno
     await supabase.from('inscripciones').delete().eq('usuario_id', alumnoId)
 
@@ -127,6 +127,7 @@ export default function AlumnosPage() {
       body: JSON.stringify({ alumnoId }),
     })
 
+    setAlumnoEliminar(null)
     if (res.ok) cargarDatos()
   }
 
@@ -249,6 +250,23 @@ export default function AlumnosPage() {
         </div>
       )}
 
+      {/* Modal: Eliminar horario del alumno */}
+      {alumnoEliminar && (
+        <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Dar de baja al alumno</h2>
+              <button onClick={() => setAlumnoEliminar(null)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">¿Estás segura de que querés dar de baja a <strong>{alumnoEliminar.nombre} {alumnoEliminar.apellido}</strong>? Esta acción no se puede deshacer.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setAlumnoEliminar(null)} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button onClick={() => handleDarDeBaja(alumnoEliminar.id)} className="flex-1 bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors">Sí, dar de baja</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Editar horario del alumno (HU-010) */}
       {editandoHorario && (
         <div className="fixed inset-0 bg-gray-400/20 backdrop-blur-sm flex items-center justify-center z-50">
@@ -312,7 +330,7 @@ export default function AlumnosPage() {
                         <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-lg shadow-lg py-1 z-50 w-40">
                           <button onClick={() => { setPerfilAlumno(alumno); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Ver perfil</button>
                           <button onClick={() => { setEditandoHorario(alumno); setNuevoHorarioId(''); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">Editar horario</button>
-                          <button onClick={() => { handleDarDeBaja(alumno.id); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50">Dar de baja</button>
+                          <button onClick={() => { setAlumnoEliminar(alumno); setMenuAbierto(null) }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-50">Dar de baja</button>
                         </div>
                       )}
                     </div>
