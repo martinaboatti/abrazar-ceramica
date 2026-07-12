@@ -27,6 +27,10 @@ Para evaluar el sistema desde ambos roles, se pueden utilizar las siguientes cre
 
 La aplicación es una PWA: puede agregarse a la pantalla de inicio del celular desde el navegador para una experiencia similar a una app nativa.
 
+## Acceso al vídeo de demostración del prototipo
+
+(https://youtu.be/j8hfIANb3js)
+
 ## Tecnologías utilizadas
 
 - **Frontend:** React, Next.js 16, TypeScript, Tailwind CSS
@@ -39,20 +43,23 @@ La aplicación es una PWA: puede agregarse a la pantalla de inicio del celular d
 
 El código completo del proyecto se encuentra en este repositorio, dentro de la carpeta `app/`. La estructura general es:
 
+```
 app/
 ├── api/                    → Endpoints del servidor (crear alumno, notificaciones, webhook de Telegram)
 ├── dashboard/              → Panel principal, con vistas separadas para docente y alumno
-│   ├── piezas/              → Motor de trazabilidad (flujos, estados, historial)
-│   ├── alumnos/             → Gestión de alumnos (solo docente)
-│   ├── horarios/            → Horarios, cupos y registro de asistencia
-│   ├── avisos/              → Tablón de avisos
-│   ├── conocimiento/        → Repositorio de fórmulas y protocolos técnicos
-│   └── perfil/              → Perfil de usuario y vinculación con Telegram
+│   ├── piezas/             → Motor de trazabilidad (flujos, estados, historial)
+│   ├── alumnos/            → Gestión de alumnos (solo docente)
+│   ├── horarios/           → Horarios, cupos y registro de asistencia
+│   ├── avisos/             → Tablón de avisos
+│   ├── conocimiento/       → Repositorio de fórmulas y protocolos técnicos
+│   └── perfil/             → Perfil de usuario y vinculación con Telegram
 ├── login/                  → Inicio de sesión
-├── recuperar/               → Recuperación de contraseña
-└── nueva-password/          → Restablecimiento de contraseña
-utils/supabase.ts            → Cliente de conexión a Supabase
-middleware.ts                 → Protección de rutas según sesión activa
+├── recuperar/              → Recuperación de contraseña
+└── nueva-password/         → Restablecimiento de contraseña
+
+utils/supabase.ts           → Cliente de conexión a Supabase
+middleware.ts               → Protección de rutas según sesión activa
+```
 
 ## Instructivo de puesta en marcha (instalación local)
 
@@ -83,8 +90,11 @@ Esta sección es para quien desee ejecutar el proyecto en su propio entorno, má
    Crear un archivo `.env.local` en la raíz del proyecto:
 
     NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
+   
     NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_publishable_key
+    
     SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
+
     TELEGRAM_BOT_TOKEN=tu_token_del_bot
 
 Estos valores se obtienen desde el panel de Supabase (**Settings → API**) y desde BotFather.
