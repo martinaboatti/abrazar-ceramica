@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -17,6 +17,27 @@ export default function NuevaPasswordPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    // Supabase envía el token de recuperación en el hash de la URL (#access_token=...)
+    // Este efecto lo detecta y establece la sesión temporal necesaria para poder cambiar la contraseña
+    async function establecerSesion() {
+      const hash = window.location.hash
+      if (hash) {
+        const params = new URLSearchParams(hash.substring(1))
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+
+        if (accessToken && refreshToken) {
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+        }
+      }
+    }
+    establecerSesion()
+  }, [])
 
   // Valida la política de contraseñas del TFG y devuelve un mensaje con TODOS los requisitos faltantes, o null si es válida
   function validarPassword(pass: string): string | null {
@@ -80,8 +101,7 @@ export default function NuevaPasswordPage() {
     })
 
     if (error) {
-      console.log('Error updateUser:', error)
-      setError('No se pudo actualizar la contraseña: ' + error.message)
+      setError('No se pudo actualizar la contraseña.')
       setLoading(false)
       return
     }
