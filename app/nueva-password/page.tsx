@@ -19,22 +19,35 @@ export default function NuevaPasswordPage() {
   const supabase = createClient()
 
   // Valida la política de contraseñas del TFG y devuelve un mensaje de error o null si es válida
-  function validarPassword(pass: string): string | null {
-    if (pass.length < 8) {
-      return 'La contraseña debe tener al menos 8 caracteres.'
+    function validarPassword(pass: string): string | null {
+    const requisitos: string[] = []
+
+    if (pass.length < 8) requisitos.push('mínimo 8 caracteres')
+    if (!/[A-Z]/.test(pass)) requisitos.push('una letra mayúscula')
+    if (!/[a-z]/.test(pass)) requisitos.push('una letra minúscula')
+    if (!/[0-9]/.test(pass)) requisitos.push('un número')
+    if (!/[$@#!%*?]/.test(pass)) requisitos.push('un carácter especial ($, @, #, !, %, *, ?)')
+
+    const secuenciaNumerica = /(0123|1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|3210)/
+    if (secuenciaNumerica.test(pass)) requisitos.push('no debe contener secuencias numéricas evidentes')
+
+    const letras = 'abcdefghijklmnopqrstuvwxyz'
+    const passLower = pass.toLowerCase()
+    for (let i = 0; i <= letras.length - 4; i++) {
+      const tramo = letras.slice(i, i + 4)
+      const tramoInvertido = tramo.split('').reverse().join('')
+      if (passLower.includes(tramo) || passLower.includes(tramoInvertido)) {
+        requisitos.push('no debe contener secuencias de letras evidentes')
+        break
+      }
     }
-    if (!/[A-Z]/.test(pass)) {
-      return 'La contraseña debe incluir al menos una letra mayúscula.'
-    }
-    if (!/[a-z]/.test(pass)) {
-      return 'La contraseña debe incluir al menos una letra minúscula.'
-    }
-    if (!/[0-9]/.test(pass)) {
-      return 'La contraseña debe incluir al menos un número.'
-    }
-    if (!/[$@#!%*?]/.test(pass)) {
-      return 'La contraseña debe incluir al menos un carácter especial ($, @, #, !, %, *, ?).'
-    }
+
+    if (/(.)\1{3,}/.test(pass)) requisitos.push('no debe repetir el mismo carácter varias veces seguidas')
+
+    if (requisitos.length === 0) return null
+
+    return `La contraseña no cumple con los siguientes requisitos: ${requisitos.join(', ')}.`
+  }
 
     // Detecta secuencias numéricas ascendentes o descendentes de 4+ dígitos (ej: 1234, 9876)
     const secuenciaNumerica = /(0123|1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|3210)/
