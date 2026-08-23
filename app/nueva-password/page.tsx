@@ -18,8 +18,8 @@ export default function NuevaPasswordPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  // Valida la política de contraseñas del TFG y devuelve un mensaje de error o null si es válida
-    function validarPassword(pass: string): string | null {
+  // Valida la política de contraseñas del TFG y devuelve un mensaje con TODOS los requisitos faltantes, o null si es válida
+  function validarPassword(pass: string): string | null {
     const requisitos: string[] = []
 
     if (pass.length < 8) requisitos.push('mínimo 8 caracteres')
@@ -28,9 +28,11 @@ export default function NuevaPasswordPage() {
     if (!/[0-9]/.test(pass)) requisitos.push('un número')
     if (!/[$@#!%*?]/.test(pass)) requisitos.push('un carácter especial ($, @, #, !, %, *, ?)')
 
+    // Detecta secuencias numéricas ascendentes o descendentes de 4+ dígitos (ej: 1234, 9876)
     const secuenciaNumerica = /(0123|1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|3210)/
     if (secuenciaNumerica.test(pass)) requisitos.push('no debe contener secuencias numéricas evidentes')
 
+    // Detecta secuencias alfabéticas ascendentes o descendentes de 4+ letras (ej: abcd, wxyz)
     const letras = 'abcdefghijklmnopqrstuvwxyz'
     const passLower = pass.toLowerCase()
     for (let i = 0; i <= letras.length - 4; i++) {
@@ -42,36 +44,12 @@ export default function NuevaPasswordPage() {
       }
     }
 
+    // Detecta el mismo carácter repetido 4 o más veces seguidas (ej: aaaa, 1111)
     if (/(.)\1{3,}/.test(pass)) requisitos.push('no debe repetir el mismo carácter varias veces seguidas')
 
     if (requisitos.length === 0) return null
 
     return `La contraseña no cumple con los siguientes requisitos: ${requisitos.join(', ')}.`
-  }
-
-    // Detecta secuencias numéricas ascendentes o descendentes de 4+ dígitos (ej: 1234, 9876)
-    const secuenciaNumerica = /(0123|1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|3210)/
-    if (secuenciaNumerica.test(pass)) {
-      return 'La contraseña no puede contener secuencias numéricas evidentes (ej: 1234).'
-    }
-
-    // Detecta secuencias alfabéticas ascendentes o descendentes de 4+ letras (ej: abcd, wxyz)
-    const letras = 'abcdefghijklmnopqrstuvwxyz'
-    const passLower = pass.toLowerCase()
-    for (let i = 0; i <= letras.length - 4; i++) {
-      const tramo = letras.slice(i, i + 4)
-      const tramoInvertido = tramo.split('').reverse().join('')
-      if (passLower.includes(tramo) || passLower.includes(tramoInvertido)) {
-        return 'La contraseña no puede contener secuencias de letras evidentes (ej: abcd).'
-      }
-    }
-
-    // Detecta el mismo carácter repetido 4 o más veces seguidas (ej: aaaa, 1111)
-    if (/(.)\1{3,}/.test(pass)) {
-      return 'La contraseña no puede contener el mismo carácter repetido varias veces seguidas.'
-    }
-
-    return null
   }
 
   async function handleCambiar() {
@@ -84,7 +62,6 @@ export default function NuevaPasswordPage() {
       return
     }
 
-    // Valida toda la política de seguridad de contraseñas
     const errorValidacion = validarPassword(password)
     if (errorValidacion) {
       setError(errorValidacion)
