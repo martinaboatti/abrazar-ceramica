@@ -80,7 +80,8 @@ export default function NuevaPasswordPage() {
     })
 
     if (error) {
-      setError('No se pudo actualizar la contraseña.')
+      console.log('Error updateUser:', error)
+      setError('No se pudo actualizar la contraseña: ' + error.message)
       setLoading(false)
       return
     }
