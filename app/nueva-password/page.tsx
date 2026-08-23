@@ -114,7 +114,17 @@ export default function NuevaPasswordPage() {
             <label className="text-sm text-gray-600 mb-1 block">Confirmar contraseña</label>
             <input type="password" placeholder="Repetí la contraseña" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
           </div>
-          <p className="text-xs text-gray-400">Debe incluir mayúscula, minúscula, número y carácter especial ($, @, #, !, %, *, ?). No se permiten secuencias como "1234" o "abcd".</p>
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-xs font-medium text-gray-600 mb-2">Requisitos de la contraseña</p>
+            <ul className="text-xs text-gray-500 flex flex-col gap-1">
+              <li>• Mínimo 8 caracteres</li>
+              <li>• Al menos una letra mayúscula</li>
+              <li>• Al menos una letra minúscula</li>
+              <li>• Al menos un número</li>
+              <li>• Al menos un carácter especial ($, @, #, !, %, *, ?)</li>
+              <li>• Sin secuencias evidentes (ej: 1234, abcd)</li>
+            </ul>
+          </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button onClick={handleCambiar} disabled={loading} className="w-full bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">
             {loading ? 'Guardando...' : 'Guardar nueva contraseña'}
