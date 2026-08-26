@@ -44,8 +44,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Regla 2: si hay usuario y la ruta es pública → redirige al dashboard
-  // (no tiene sentido ver el login si ya estás logueado)
-  if (user && esRutaPublica) {
+  // EXCEPCIÓN: /nueva-password no redirige aunque haya sesión, porque el link
+  // de recuperación de contraseña crea una sesión temporal y el usuario necesita
+  // llegar a esta página para poder cambiar su contraseña
+  if (user && esRutaPublica && request.nextUrl.pathname !== '/nueva-password') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
