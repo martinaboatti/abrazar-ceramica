@@ -27,8 +27,7 @@ export default function NuevaPasswordPage() {
       const code = params.get('code')
 
       if (code) {
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-        console.log('Resultado exchangeCodeForSession:', data, error)
+        await supabase.auth.exchangeCodeForSession(code)
         return
       }
 
