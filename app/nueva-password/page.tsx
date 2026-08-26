@@ -18,15 +18,24 @@ export default function NuevaPasswordPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    // Supabase envía el token de recuperación en el hash de la URL (#access_token=...)
-    // Este efecto lo detecta y establece la sesión temporal necesaria para poder cambiar la contraseña
+    useEffect(() => {
+    // Supabase puede enviar el token de dos formas distintas según la configuración:
+    // 1. Como "code" en la query string (flujo PKCE)
+    // 2. Como "access_token" en el hash de la URL (flujo implícito)
     async function establecerSesion() {
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code)
+        return
+      }
+
       const hash = window.location.hash
       if (hash) {
-        const params = new URLSearchParams(hash.substring(1))
-        const accessToken = params.get('access_token')
-        const refreshToken = params.get('refresh_token')
+        const hashParams = new URLSearchParams(hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
 
         if (accessToken && refreshToken) {
           await supabase.auth.setSession({
