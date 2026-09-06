@@ -15,38 +15,47 @@ export default function NuevaPasswordPage() {
   const [confirmar, setConfirmar] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sesionInicializada, setSesionInicializada] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
-    useEffect(() => {
+  useEffect(() => {
     // Supabase puede enviar el token de dos formas distintas según la configuración:
     // 1. Como "code" en la query string (flujo PKCE)
     // 2. Como "access_token" en el hash de la URL (flujo implícito)
     async function establecerSesion() {
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get('code')
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const code = params.get('code')
 
-      if (code) {
-        await supabase.auth.exchangeCodeForSession(code)
-        return
-      }
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (error) throw error
+        } else {
+          const hash = window.location.hash
+          if (hash) {
+            const hashParams = new URLSearchParams(hash.substring(1))
+            const accessToken = hashParams.get('access_token')
+            const refreshToken = hashParams.get('refresh_token')
 
-      const hash = window.location.hash
-      if (hash) {
-        const hashParams = new URLSearchParams(hash.substring(1))
-        const accessToken = hashParams.get('access_token')
-        const refreshToken = hashParams.get('refresh_token')
-
-        if (accessToken && refreshToken) {
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          })
+            if (accessToken && refreshToken) {
+              const { error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              })
+              if (error) throw error
+            }
+          }
         }
+      } catch (error) {
+        console.error('Error estableciendo la sesión:', error)
+        setError('El enlace para recuperar la contraseña no es válido o expiró.')
+      } finally {
+        setSesionInicializada(true)
       }
     }
     establecerSesion()
-  }, [])
+  }, [supabase.auth])
 
   // Valida la política de contraseñas del TFG y devuelve un mensaje con TODOS los requisitos faltantes, o null si es válida
   function validarPassword(pass: string): string | null {
@@ -105,6 +114,13 @@ export default function NuevaPasswordPage() {
       return
     }
 
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      setError('La sesión para recuperar la contraseña no está disponible. Volvé a abrir el enlace del mail.')
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.auth.updateUser({
       password,
     })
@@ -147,8 +163,8 @@ export default function NuevaPasswordPage() {
             </ul>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button onClick={handleCambiar} disabled={loading} className="w-full bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">
-            {loading ? 'Guardando...' : 'Guardar nueva contraseña'}
+          <button onClick={handleCambiar} disabled={loading || !sesionInicializada} className="w-full bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">
+            {!sesionInicializada ? 'Validando enlace...' : loading ? 'Guardando...' : 'Guardar nueva contraseña'}
           </button>
         </div>
       </div>
