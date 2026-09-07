@@ -20,41 +20,44 @@ export default function NuevaPasswordPage() {
   const [supabase] = useState(() => createClient())
 
   useEffect(() => {
-    // Supabase puede enviar el token de dos formas distintas según la configuración:
-    // 1. Como "code" en la query string (flujo PKCE)
-    // 2. Como "access_token" en el hash de la URL (flujo implícito)
-    async function establecerSesion() {
-      try {
-        const params = new URLSearchParams(window.location.search)
-        const code = params.get('code')
-
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
-          if (error) throw error
-        } else {
-          const hash = window.location.hash
-          if (hash) {
-            const hashParams = new URLSearchParams(hash.substring(1))
-            const accessToken = hashParams.get('access_token')
-            const refreshToken = hashParams.get('refresh_token')
-
-            if (accessToken && refreshToken) {
-              const { error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              })
-              if (error) throw error
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error estableciendo la sesión:', error)
-        setError('El enlace para recuperar la contraseña no es válido o expiró.')
-      } finally {
+    // IMPORTANTE: no parseamos "code" ni "access_token" a mano acá.
+    // createBrowserClient (de @supabase/ssr) ya trae detectSessionInUrl: true
+    // por defecto, así que apenas se instancia el cliente, él solo detecta
+    // y consume el token de la URL (?code=... o #access_token=...).
+    //
+    // Antes intentábamos hacer ese mismo trabajo a mano con
+    // exchangeCodeForSession/setSession, y como el código es de un solo uso,
+    // se generaba una carrera entre el detector automático del cliente y
+    // nuestro código manual: el que llegaba segundo se encontraba con un
+    // código ya gastado. Eso era la causa del error intermitente
+    // "Auth session missing!".
+    //
+    // La forma correcta de saber cuándo la sesión de recuperación quedó
+    // lista es escuchar el evento PASSWORD_RECOVERY.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
         setSesionInicializada(true)
       }
+    })
+
+    // Red de seguridad: si a los pocos segundos no llegó el evento
+    // PASSWORD_RECOVERY, es porque el enlace ya se usó (por ejemplo, un
+    // escáner de seguridad del cliente de mail lo "pre-visitó") o expiró.
+    // En ese caso mostramos el error y dejamos el botón deshabilitado
+    // (sesionInicializada queda en false a propósito).
+    const timeout = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setError('El enlace para recuperar la contraseña no es válido o ya expiró. Pedí uno nuevo.')
+      } else {
+        setSesionInicializada(true)
+      }
+    }, 3000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
     }
-    establecerSesion()
   }, [supabase.auth])
 
   // Valida la política de contraseñas del TFG y devuelve un mensaje con TODOS los requisitos faltantes, o null si es válida
@@ -114,13 +117,9 @@ export default function NuevaPasswordPage() {
       return
     }
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      setError('La sesión para recuperar la contraseña no está disponible. Volvé a abrir el enlace del mail.')
-      setLoading(false)
-      return
-    }
-
+    // No hace falta volver a chequear la sesión acá: si el usuario pudo
+    // hacer clic es porque sesionInicializada ya es true, y eso solo pasa
+    // tras el evento PASSWORD_RECOVERY (sesión confirmada).
     const { error } = await supabase.auth.updateUser({
       password,
     })
@@ -164,7 +163,7 @@ export default function NuevaPasswordPage() {
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button onClick={handleCambiar} disabled={loading || !sesionInicializada} className="w-full bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">
-            {!sesionInicializada ? 'Validando enlace...' : loading ? 'Guardando...' : 'Guardar nueva contraseña'}
+            {error && !sesionInicializada ? 'Enlace no disponible' : !sesionInicializada ? 'Validando enlace...' : loading ? 'Guardando...' : 'Guardar nueva contraseña'}
           </button>
         </div>
       </div>
