@@ -3,62 +3,61 @@
 // Implementa la política de contraseñas descripta en la sección de Seguridad del TFG:
 // mínimo 8 caracteres, mayúscula, minúscula, número, carácter especial,
 // y rechazo de secuencias evidentes (12345678, abcdefgh, etc.)
+//
+// Flujo en dos pasos para evitar que los escáneres de seguridad de los
+// clientes de mail (Gmail, Outlook) invaliden el enlace antes de que el
+// usuario lo abra: el link del mail apunta a esta página con un
+// "token_hash" en la URL, pero ese token NO se canjea automáticamente.
+// Recién se canjea cuando el usuario hace clic en el botón "Confirmar".
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/utils/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function NuevaPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirmar, setConfirmar] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [verificando, setVerificando] = useState(false)
   const [sesionInicializada, setSesionInicializada] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [supabase] = useState(() => createClient())
 
-  useEffect(() => {
-    // IMPORTANTE: no parseamos "code" ni "access_token" a mano acá.
-    // createBrowserClient (de @supabase/ssr) ya trae detectSessionInUrl: true
-    // por defecto, así que apenas se instancia el cliente, él solo detecta
-    // y consume el token de la URL (?code=... o #access_token=...).
-    //
-    // Antes intentábamos hacer ese mismo trabajo a mano con
-    // exchangeCodeForSession/setSession, y como el código es de un solo uso,
-    // se generaba una carrera entre el detector automático del cliente y
-    // nuestro código manual: el que llegaba segundo se encontraba con un
-    // código ya gastado. Eso era la causa del error intermitente
-    // "Auth session missing!".
-    //
-    // La forma correcta de saber cuándo la sesión de recuperación quedó
-    // lista es escuchar el evento PASSWORD_RECOVERY.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' && session) {
-        setSesionInicializada(true)
-      }
+  const tokenHash = searchParams.get('token_hash')
+  const type = searchParams.get('type')
+
+  // Paso 1: el usuario confirma con un clic real. Esto es lo que evita
+  // que un escáner automático de un cliente de mail gaste el token solo
+  // por "visitar" la URL, porque un escáner no hace clic en botones.
+  async function handleConfirmar() {
+    setError('')
+    setVerificando(true)
+
+    if (!tokenHash || type !== 'recovery') {
+      setError('El enlace para recuperar la contraseña no es válido.')
+      setVerificando(false)
+      return
+    }
+
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'recovery',
     })
 
-    // Red de seguridad: si a los pocos segundos no llegó el evento
-    // PASSWORD_RECOVERY, es porque el enlace ya se usó (por ejemplo, un
-    // escáner de seguridad del cliente de mail lo "pre-visitó") o expiró.
-    // En ese caso mostramos el error y dejamos el botón deshabilitado
-    // (sesionInicializada queda en false a propósito).
-    const timeout = setTimeout(async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        setError('El enlace para recuperar la contraseña no es válido o ya expiró. Pedí uno nuevo.')
-      } else {
-        setSesionInicializada(true)
-      }
-    }, 3000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timeout)
+    if (error) {
+      console.log('Error verifyOtp:', error)
+      setError('El enlace para recuperar la contraseña no es válido o ya expiró. Pedí uno nuevo.')
+      setVerificando(false)
+      return
     }
-  }, [supabase.auth])
+
+    setSesionInicializada(true)
+    setVerificando(false)
+  }
 
   // Valida la política de contraseñas del TFG y devuelve un mensaje con TODOS los requisitos faltantes, o null si es válida
   function validarPassword(pass: string): string | null {
@@ -70,11 +69,9 @@ export default function NuevaPasswordPage() {
     if (!/[0-9]/.test(pass)) requisitos.push('un número')
     if (!/[$@#!%*?]/.test(pass)) requisitos.push('un carácter especial ($, @, #, !, %, *, ?)')
 
-    // Detecta secuencias numéricas ascendentes o descendentes de 4+ dígitos (ej: 1234, 9876)
     const secuenciaNumerica = /(0123|1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|3210)/
     if (secuenciaNumerica.test(pass)) requisitos.push('no debe contener secuencias numéricas evidentes')
 
-    // Detecta secuencias alfabéticas ascendentes o descendentes de 4+ letras (ej: abcd, wxyz)
     const letras = 'abcdefghijklmnopqrstuvwxyz'
     const passLower = pass.toLowerCase()
     for (let i = 0; i <= letras.length - 4; i++) {
@@ -86,7 +83,6 @@ export default function NuevaPasswordPage() {
       }
     }
 
-    // Detecta el mismo carácter repetido 4 o más veces seguidas (ej: aaaa, 1111)
     if (/(.)\1{3,}/.test(pass)) requisitos.push('no debe repetir el mismo carácter varias veces seguidas')
 
     if (requisitos.length === 0) return null
@@ -117,9 +113,6 @@ export default function NuevaPasswordPage() {
       return
     }
 
-    // No hace falta volver a chequear la sesión acá: si el usuario pudo
-    // hacer clic es porque sesionInicializada ya es true, y eso solo pasa
-    // tras el evento PASSWORD_RECOVERY (sesión confirmada).
     const { error } = await supabase.auth.updateUser({
       password,
     })
@@ -139,33 +132,54 @@ export default function NuevaPasswordPage() {
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm p-8">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-semibold text-gray-800">Abrazar Cerámica</h1>
-          <p className="text-gray-400 text-sm mt-1">Creá tu nueva contraseña</p>
+          <p className="text-gray-400 text-sm mt-1">
+            {sesionInicializada ? 'Creá tu nueva contraseña' : 'Recuperar contraseña'}
+          </p>
         </div>
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className="text-sm text-gray-600 mb-1 block">Nueva contraseña</label>
-            <input type="password" placeholder="Mínimo 8 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
+
+        {!sesionInicializada ? (
+          // PASO 1: pantalla de confirmación manual
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-gray-600 text-center">
+              Hacé clic en el botón para confirmar que querés restablecer tu contraseña.
+            </p>
+            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            <button
+              onClick={handleConfirmar}
+              disabled={verificando}
+              className="w-full bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {verificando ? 'Confirmando...' : 'Confirmar y continuar'}
+            </button>
           </div>
-          <div>
-            <label className="text-sm text-gray-600 mb-1 block">Confirmar contraseña</label>
-            <input type="password" placeholder="Repetí la contraseña" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
+        ) : (
+          // PASO 2: formulario de nueva contraseña (igual que antes)
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="text-sm text-gray-600 mb-1 block">Nueva contraseña</label>
+              <input type="password" placeholder="Mínimo 8 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600 mb-1 block">Confirmar contraseña</label>
+              <input type="password" placeholder="Repetí la contraseña" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} className="w-full border border-gray-200 text-gray-900 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-naranja-300 placeholder:text-gray-300" />
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-600 mb-2">Requisitos de la contraseña</p>
+              <ul className="text-xs text-gray-500 flex flex-col gap-1">
+                <li>• Mínimo 8 caracteres</li>
+                <li>• Al menos una letra mayúscula</li>
+                <li>• Al menos una letra minúscula</li>
+                <li>• Al menos un número</li>
+                <li>• Al menos un carácter especial ($, @, #, !, %, *, ?)</li>
+                <li>• Sin secuencias evidentes (ej: 1234, abcd)</li>
+              </ul>
+            </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <button onClick={handleCambiar} disabled={loading} className="w-full bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">
+              {loading ? 'Guardando...' : 'Guardar nueva contraseña'}
+            </button>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs font-medium text-gray-600 mb-2">Requisitos de la contraseña</p>
-            <ul className="text-xs text-gray-500 flex flex-col gap-1">
-              <li>• Mínimo 8 caracteres</li>
-              <li>• Al menos una letra mayúscula</li>
-              <li>• Al menos una letra minúscula</li>
-              <li>• Al menos un número</li>
-              <li>• Al menos un carácter especial ($, @, #, !, %, *, ?)</li>
-              <li>• Sin secuencias evidentes (ej: 1234, abcd)</li>
-            </ul>
-          </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button onClick={handleCambiar} disabled={loading || !sesionInicializada} className="w-full bg-naranja-500 hover:bg-naranja-600 text-white rounded-lg py-2.5 text-sm font-medium transition-colors disabled:opacity-50">
-            {error && !sesionInicializada ? 'Enlace no disponible' : !sesionInicializada ? 'Validando enlace...' : loading ? 'Guardando...' : 'Guardar nueva contraseña'}
-          </button>
-        </div>
+        )}
       </div>
     </main>
   )
