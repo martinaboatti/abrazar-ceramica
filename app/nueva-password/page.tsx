@@ -9,14 +9,19 @@
 // usuario lo abra: el link del mail apunta a esta página con un
 // "token_hash" en la URL, pero ese token NO se canjea automáticamente.
 // Recién se canjea cuando el usuario hace clic en el botón "Confirmar".
+//
+// NOTA TÉCNICA: useSearchParams() obliga a envolver el componente en
+// <Suspense>, si no Next.js falla al generar la página estática en el
+// build ("useSearchParams() should be wrapped in a suspense boundary").
+// Por eso separamos la lógica en NuevaPasswordForm y la envolvemos abajo.
 
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { createClient } from '@/utils/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function NuevaPasswordPage() {
+function NuevaPasswordForm() {
   const [password, setPassword] = useState('')
   const [confirmar, setConfirmar] = useState('')
   const [error, setError] = useState('')
@@ -138,7 +143,6 @@ export default function NuevaPasswordPage() {
         </div>
 
         {!sesionInicializada ? (
-          // PASO 1: pantalla de confirmación manual
           <div className="flex flex-col gap-4">
             <p className="text-sm text-gray-600 text-center">
               Hacé clic en el botón para confirmar que querés restablecer tu contraseña.
@@ -153,7 +157,6 @@ export default function NuevaPasswordPage() {
             </button>
           </div>
         ) : (
-          // PASO 2: formulario de nueva contraseña (igual que antes)
           <div className="flex flex-col gap-4">
             <div>
               <label className="text-sm text-gray-600 mb-1 block">Nueva contraseña</label>
@@ -182,5 +185,17 @@ export default function NuevaPasswordPage() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function NuevaPasswordPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-screen items-center justify-center bg-gray-50">
+        <p className="text-gray-400 text-sm">Cargando...</p>
+      </main>
+    }>
+      <NuevaPasswordForm />
+    </Suspense>
   )
 }
